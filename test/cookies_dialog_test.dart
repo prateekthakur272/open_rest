@@ -142,7 +142,7 @@ void main() {
         'dark',
         'a.example.com',
         hostOnly: true,
-        expires: DateTime.now().add(const Duration(hours: 5)),
+        expires: DateTime.now().add(const Duration(hours: 5, minutes: 30)),
       ),
       _c(
         'lang',
