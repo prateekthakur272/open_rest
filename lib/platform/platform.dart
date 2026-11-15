@@ -2,6 +2,7 @@ import 'dart:io' as io;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
+import 'package:open_rest/core/logging/log.dart';
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -14,10 +15,21 @@ class Platform {
   static final bool isWindows = io.Platform.isWindows;
   static final bool isLinux = io.Platform.isLinux;
 
+  /// Call once at startup. The app isn't sandboxed and doesn't declare the macOS file-access entitlements,
+  /// so the file picker would otherwise refuse to open any dialog.
+  static Future<void> init() async {
+    try {
+      await FilePicker.skipEntitlementsChecks();
+    } catch (e, st) {
+      Log.warning('platform', 'Could not configure the file picker', e, st);
+    }
+  }
+
   static Future<String?> pickDirectory(String title) async {
     try {
       return await FilePicker.getDirectoryPath(dialogTitle: title);
-    } catch (_) {
+    } catch (e, st) {
+      Log.warning('platform', 'Folder dialog failed', e, st);
       return null;
     }
   }
@@ -26,7 +38,8 @@ class Platform {
     try {
       final f = await FilePicker.pickFile(dialogTitle: title);
       return f?.path;
-    } catch (_) {
+    } catch (e, st) {
+      Log.warning('platform', 'File dialog failed', e, st);
       return null;
     }
   }
@@ -40,7 +53,8 @@ class Platform {
       );
       if (uri == null) return null;
       return uri.scheme == 'file' ? uri.toFilePath() : uri.toString();
-    } catch (_) {
+    } catch (e, st) {
+      Log.warning('platform', 'Save dialog failed', e, st);
       return null;
     }
   }

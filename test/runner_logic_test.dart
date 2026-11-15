@@ -135,4 +135,23 @@ void main() {
       'Defaults',
     );
   });
+
+  test('min, max and stat captions', () {
+    final s = summarize(items);
+    expect((s.minMs, s.maxMs), (10, 30));
+    expect(passPercent(s), 40);
+    expect(passedCaption(s), '40% of 5');
+    expect(failedCaption(s), '2 need attention');
+    expect(skippedCaption(s), 'not run');
+    expect(avgCaption(s), 'min 10 ms · max 30 ms');
+    expect(testsValue(s), '4/5');
+    expect(testsCaption(s), '5 assertions');
+    const none = RunSummary();
+    expect(passedCaption(none), '—');
+    expect(failedCaption(none), 'none');
+    expect(skippedCaption(none), 'none');
+    expect(avgCaption(none), '—');
+    expect(testsValue(none), '—');
+    expect(testsCaption(none), 'no tests');
+  });
 }

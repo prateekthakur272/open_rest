@@ -5,82 +5,9 @@ import 'package:open_rest/components/code_editor.dart';
 import 'package:open_rest/components/layout.dart';
 import 'package:open_rest/components/tables.dart';
 import 'package:open_rest/components/text.dart';
-import 'package:open_rest/core/http/http.dart';
 import 'package:open_rest/core/model/model.dart';
 import 'package:open_rest/features/request/request_pane.dart';
 import 'package:open_rest/theme/theme.dart';
-
-/// Dialog for viewing and clearing stored cookies.
-class CookiesDialog extends StatefulWidget {
-  const CookiesDialog({super.key, required this.state});
-  final AppState state;
-
-  @override
-  State<CookiesDialog> createState() => _CookiesDialogState();
-}
-
-class _CookiesDialogState extends State<CookiesDialog> {
-  @override
-  Widget build(BuildContext context) {
-    final p = context.pal;
-    final cookies = List<StoredCookie>.of(HttpExecutor.cookies.cookies);
-    return ModalBox(
-      title: 'Cookies',
-      onClose: () => widget.state.modal = null,
-      width: 640,
-      height: 440,
-      actions: [
-        Btn(
-          label: 'Clear All',
-          onClick: () {
-            HttpExecutor.cookies.removeAll();
-            setState(() {});
-          },
-          danger: true,
-        ),
-        Btn(
-          label: 'Close',
-          onClick: () => widget.state.modal = null,
-          primary: true,
-        ),
-      ],
-      content: [
-        if (cookies.isEmpty)
-          T('No cookies stored in this session.', color: p.muted)
-        else
-          Expanded(
-            child: SizedBox(
-              width: double.infinity,
-              child: ListView.separated(
-                itemCount: cookies.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 8),
-                itemBuilder: (ctx, i) {
-                  final c = cookies[i];
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      T(
-                        '${c.name} = ${c.value}',
-                        mono: true,
-                        weight: FontWeight.w600,
-                        maxLines: 2,
-                      ),
-                      T(
-                        '${c.domain ?? ''}  ${c.path ?? '/'}  ${c.secure ? 'Secure ' : ''}${c.isHttpOnly ? 'HttpOnly' : ''}',
-                        color: p.muted,
-                        size: 12,
-                        mono: true,
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
 
 /// Dialog for editing collection or folder settings.
 class NodeSettingsDialog extends StatefulWidget {

@@ -35,6 +35,8 @@ class RunSummary {
     this.skipped = 0,
     this.totalMs = 0,
     this.responses = 0,
+    this.minMs = 0,
+    this.maxMs = 0,
     this.testsPassed = 0,
     this.testsTotal = 0,
   });
@@ -48,6 +50,10 @@ class RunSummary {
 
   /// Number of items that produced a response (the divisor for [avgMs]).
   final int responses;
+
+  /// Fastest and slowest response time.
+  final int minMs;
+  final int maxMs;
   final int testsPassed;
   final int testsTotal;
 
@@ -59,6 +65,7 @@ class RunSummary {
 RunSummary summarize(Iterable<RunnerItem> items) {
   var passed = 0, failed = 0, skipped = 0;
   var ms = 0, responses = 0, tp = 0, tt = 0;
+  int? lo, hi;
   for (final it in items) {
     switch (statusOf(it)) {
       case RunStatus.passed:
@@ -72,6 +79,8 @@ RunSummary summarize(Iterable<RunnerItem> items) {
     if (resp != null) {
       ms += resp.timeMs;
       responses++;
+      lo = lo == null || resp.timeMs < lo ? resp.timeMs : lo;
+      hi = hi == null || resp.timeMs > hi ? resp.timeMs : hi;
     }
     tt += it.result.tests.length;
     tp += it.result.tests.where((t) => t.passed).length;
@@ -82,6 +91,8 @@ RunSummary summarize(Iterable<RunnerItem> items) {
     skipped: skipped,
     totalMs: ms,
     responses: responses,
+    minMs: lo ?? 0,
+    maxMs: hi ?? 0,
     testsPassed: tp,
     testsTotal: tt,
   );
@@ -270,3 +281,30 @@ String settingsSummary({
   ];
   return parts.isEmpty ? 'Defaults' : parts.join(' · ');
 }
+
+/// Share of passed requests, 0-100.
+int passPercent(RunSummary s) =>
+    s.total == 0 ? 0 : (s.passed * 100 / s.total).round();
+
+/// Sub-caption under the Passed value, e.g. `75% of 8`.
+String passedCaption(RunSummary s) =>
+    s.total == 0 ? '—' : '${passPercent(s)}% of ${s.total}';
+
+/// Sub-caption under the Failed value.
+String failedCaption(RunSummary s) =>
+    s.failed == 0 ? 'none' : '${s.failed} need attention';
+
+/// Sub-caption under the Skipped value.
+String skippedCaption(RunSummary s) => s.skipped == 0 ? 'none' : 'not run';
+
+/// Sub-caption under the average response time.
+String avgCaption(RunSummary s) =>
+    s.responses == 0 ? '—' : 'min ${s.minMs} ms · max ${s.maxMs} ms';
+
+/// Tests value: `passed/total`, or a dash when no test ran.
+String testsValue(RunSummary s) =>
+    s.testsTotal == 0 ? '—' : '${s.testsPassed}/${s.testsTotal}';
+
+/// Sub-caption under the tests value.
+String testsCaption(RunSummary s) =>
+    s.testsTotal == 0 ? 'no tests' : '${s.testsTotal} assertions';

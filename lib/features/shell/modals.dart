@@ -5,6 +5,7 @@ import 'package:open_rest/components/layout.dart';
 import 'package:open_rest/components/text.dart';
 import 'package:open_rest/features/developer/developer_dialog.dart';
 import 'package:open_rest/features/dialogs/collection_dialogs.dart';
+import 'package:open_rest/features/dialogs/cookies_dialog.dart';
 import 'package:open_rest/features/dialogs/dialogs.dart';
 import 'package:open_rest/features/dialogs/env_dialogs.dart';
 import 'package:open_rest/features/dialogs/settings_dialogs.dart';

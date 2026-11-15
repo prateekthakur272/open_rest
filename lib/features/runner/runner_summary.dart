@@ -101,19 +101,141 @@ class _RunnerSummaryState extends State<RunnerSummary> {
     final barColor = s.failed > 0 ? pal.err : (finished ? pal.ok : pal.accent);
     final failedNodes = failedRequests(items);
 
-    Widget tile(String label, String value, [Color? color]) => Expanded(
-      child: Container(
-        color: pal.field,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SectionLabel(label.toUpperCase()),
-            T(value, size: 18, weight: FontWeight.w600, color: color),
-          ],
+    Widget tile({
+      required IconData icon,
+      required String label,
+      required String value,
+      required String caption,
+      required Color accent,
+      Color? valueColor,
+      bool status = false,
+      bool tint = false,
+    }) {
+      return Expanded(
+        child: Container(
+          decoration: BoxDecoration(
+            color: tint ? pal.err.withValues(alpha: 0.06) : pal.bg,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          foregroundDecoration: BoxDecoration(
+            border: Border.all(color: pal.border),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(height: 3, color: status ? accent : null),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      spacing: 8,
+                      children: [
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: accent.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: Ico(icon, tint: accent, size: 16),
+                          ),
+                        ),
+                        Flexible(
+                          child: T(
+                            label.toUpperCase(),
+                            color: pal.muted,
+                            size: 10.5,
+                            weight: FontWeight.w600,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 150),
+                      child: T(
+                        value,
+                        key: ValueKey(value),
+                        size: 24,
+                        weight: FontWeight.w600,
+                        mono: true,
+                        color: valueColor,
+                        maxLines: 1,
+                      ),
+                    ),
+                    T(
+                      caption,
+                      size: 11,
+                      color: pal.muted,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
+      );
+    }
+
+    final tiles = [
+      tile(
+        icon: Ic.check,
+        label: 'Passed',
+        value: '${s.passed}',
+        caption: passedCaption(s),
+        accent: pal.ok,
+        valueColor: s.passed > 0 ? pal.ok : null,
+        status: true,
       ),
-    );
+      tile(
+        icon: Ic.cancel,
+        label: 'Failed',
+        value: '${s.failed}',
+        caption: failedCaption(s),
+        accent: pal.err,
+        valueColor: s.failed > 0 ? pal.err : null,
+        status: s.failed > 0,
+        tint: s.failed > 0,
+      ),
+      tile(
+        icon: Ic.skip,
+        label: 'Skipped',
+        value: '${s.skipped}',
+        caption: skippedCaption(s),
+        accent: pal.warn,
+      ),
+      tile(
+        icon: Ic.timer,
+        label: 'Total',
+        value: formatDuration(_elapsedMs),
+        caption: 'wall clock',
+        accent: pal.accent,
+      ),
+      tile(
+        icon: Ic.speed,
+        label: 'Avg response',
+        value: '${s.avgMs} ms',
+        caption: avgCaption(s),
+        accent: pal.muted,
+      ),
+      tile(
+        icon: Ic.checklist,
+        label: 'Tests',
+        value: testsValue(s),
+        caption: testsCaption(s),
+        accent: s.testsPassed < s.testsTotal ? pal.err : pal.muted,
+        valueColor: s.testsPassed < s.testsTotal ? pal.err : null,
+      ),
+    ];
 
     return Container(
       foregroundDecoration: BoxDecoration(
@@ -135,7 +257,6 @@ class _RunnerSummaryState extends State<RunnerSummary> {
                     borderRadius: BorderRadius.circular(3),
                   ),
                   child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
                     widthFactor: frac,
                     child: DecoratedBox(
                       decoration: BoxDecoration(
@@ -150,20 +271,22 @@ class _RunnerSummaryState extends State<RunnerSummary> {
               T(formatDuration(_elapsedMs), color: pal.muted, size: 12),
             ],
           ),
-          Row(
-            spacing: 8,
-            children: [
-              tile('Passed', '${s.passed}', pal.ok),
-              tile('Failed', '${s.failed}', s.failed > 0 ? pal.err : null),
-              tile('Skipped', '${s.skipped}'),
-              tile('Total', formatDuration(_elapsedMs)),
-              tile('Avg response', '${s.avgMs} ms'),
-              tile(
-                'Tests',
-                '${s.testsPassed}/${s.testsTotal}',
-                s.testsPassed < s.testsTotal ? pal.err : null,
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, c) {
+              final cols = c.maxWidth >= 900 ? 6 : (c.maxWidth >= 560 ? 3 : 2);
+              final w = (c.maxWidth - 10 * (cols - 1)) / cols;
+              return Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (final t in tiles)
+                    SizedBox(
+                      width: w,
+                      child: Row(children: [t]),
+                    ),
+                ],
+              );
+            },
           ),
           if (finished && items.isNotEmpty)
             Wrap(

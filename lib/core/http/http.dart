@@ -94,6 +94,13 @@ class CookieJar {
 
   void removeAll() => cookies.clear();
 
+  /// Removes one stored cookie (matched by identity).
+  void removeCookie(StoredCookie c) => cookies.remove(c);
+
+  /// Removes every cookie stored for [domain].
+  void removeDomain(String domain) =>
+      cookies.removeWhere((c) => (c.domain ?? '') == domain);
+
   void store(Uri uri, List<String> setCookieValues) {
     for (final raw in setCookieValues) {
       try {

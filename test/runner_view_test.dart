@@ -1,6 +1,7 @@
 import 'dart:ui' show Size;
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show FlutterError;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_rest/app/app_state.dart';
 import 'package:open_rest/core/model/model.dart';
@@ -17,6 +18,8 @@ void main() {
     t,
   ) async {
     useTempHome();
+    final oldOnError = FlutterError.onError;
+    addTearDown(() => FlutterError.onError = oldOnError);
     captureErrors();
     t.view.physicalSize = const Size(1400, 900);
     t.view.devicePixelRatio = 1;
@@ -89,6 +92,11 @@ void main() {
     expect(find.text('Iteration 1'), findsOneWidget);
     expect(find.text('Iteration 2'), findsOneWidget);
     expect(find.text('Failed 2'), findsOneWidget);
+    expect(find.text('PASSED'), findsOneWidget);
+    expect(find.text('2 need attention'), findsOneWidget);
+    expect(find.text('50% of 4'), findsOneWidget);
+    expect(find.text('min 20 ms · max 40 ms'), findsOneWidget);
+    expect(find.text('4 assertions'), findsOneWidget);
     expect(find.text('Re-run failed (2)'), findsNothing); // one node, deduped
     expect(find.text('Re-run failed (1)'), findsOneWidget);
     expect(find.text('Copy summary'), findsOneWidget);
@@ -113,11 +121,13 @@ void main() {
             t.getCenter(find.byElementPredicate((x) => x == e)).dx,
     };
     expect(xs.length, 1);
-    expect(errors, isEmpty);
+    expect(errors(t), isEmpty);
   });
 
   testWidgets('empty selection disables Run and says why', (t) async {
     useTempHome();
+    final oldOnError = FlutterError.onError;
+    addTearDown(() => FlutterError.onError = oldOnError);
     captureErrors();
     t.view.physicalSize = const Size(1400, 900);
     t.view.devicePixelRatio = 1;
@@ -130,6 +140,6 @@ void main() {
     await t.pump();
     expect(find.text('No requests in this collection'), findsOneWidget);
     expect(find.text('Select at least one request to run'), findsOneWidget);
-    expect(errors, isEmpty);
+    expect(errors(t), isEmpty);
   });
 }

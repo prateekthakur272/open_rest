@@ -51,6 +51,7 @@ Future<void> main() async {
     developerUrl: 'https://github.com/prateekthakur272',
   );
   final isMac = Platform.isMac;
+  await Platform.init();
   await wm.windowManager.ensureInitialized();
   // The app's own top bar is the title bar. macOS keeps its native traffic-light buttons, floating over that bar;
   // Windows / Linux draw nothing, so the app supplies its own window buttons, drag area and resize edges.

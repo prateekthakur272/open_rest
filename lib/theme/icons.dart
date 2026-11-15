@@ -7,6 +7,9 @@ class Ic {
   static const IconData logo = Icons.api_rounded;
   static const IconData close = Icons.close_rounded;
   static const IconData add = Icons.add_rounded;
+  static const IconData timer = Icons.timer_outlined;
+  static const IconData speed = Icons.speed_rounded;
+  static const IconData checklist = Icons.checklist_rounded;
   static const IconData more = Icons.more_vert_rounded;
   static const IconData refresh = Icons.refresh_rounded;
   static const IconData collapseAll = Icons.unfold_less_rounded;
