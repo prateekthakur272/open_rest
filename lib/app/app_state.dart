@@ -259,17 +259,50 @@ class AppState extends ChangeNotifier {
     splitFraction = saved.splitFraction.clamp(0.12, 0.88).toDouble();
     sidebarVisible = saved.sidebarVisible;
     _restoreSidebar(saved);
-    for (final f in saved.tabs) {
-      final c = firstMatch(collections, (c) => isUnder(f, c.path));
-      if (c != null) {
-        final r = c.findRequest(f);
-        if (r != null) openRequest(c.path, r);
-      }
+    for (final k in saved.tabs) {
+      Log.orElse('app', 'Cannot restore tab $k', null, () => _restoreTab(k));
     }
     final a = saved.activeTab;
     if (a != null) {
-      final t = firstMatch(tabs, (t) => t.filePath == a);
+      final t = firstMatch(tabs, (t) => tabKey(t) == a);
       if (t != null) activeTabId = t.id;
+    }
+  }
+
+  static const _collectionTab = 'collection:';
+  static const _runnerTab = 'runner:';
+  static const _workflowTab = 'workflow:';
+
+  /// Stable identity of a tab across launches: a request's file path, or a typed key for the other kinds.
+  String tabKey(RequestTab t) {
+    if (t.collection != null) return '$_collectionTab${t.collectionPath}';
+    if (t.runner != null) {
+      return '$_runnerTab${t.collectionPath}\n${t.runner!.folder ?? ''}';
+    }
+    if (t.workflow != null) {
+      return '$_workflowTab${t.collectionPath}\n${t.workflow!.saved.name}';
+    }
+    return t.filePath;
+  }
+
+  void _restoreTab(String k) {
+    (String, String) split(String v) {
+      final i = v.indexOf('\n');
+      return i < 0 ? (v, '') : (v.substring(0, i), v.substring(i + 1));
+    }
+
+    if (k.startsWith(_collectionTab)) {
+      openCollectionTab(k.substring(_collectionTab.length));
+    } else if (k.startsWith(_runnerTab)) {
+      final (col, folder) = split(k.substring(_runnerTab.length));
+      openRunner(col, folder.isEmpty ? null : folder);
+    } else if (k.startsWith(_workflowTab)) {
+      final (col, name) = split(k.substring(_workflowTab.length));
+      openWorkflow(col, name);
+    } else {
+      final c = firstMatch(collections, (c) => isUnder(k, c.path));
+      final r = c?.findRequest(k);
+      if (c != null && r != null) openRequest(c.path, r);
     }
   }
 
@@ -365,6 +398,9 @@ class AppState extends ChangeNotifier {
       for (final e in expanded.entries)
         if (e.value) e.key,
     },
+    // Open tabs (in order) and the active one.
+    tabs.map(tabKey).join('\u0001'),
+    activeTab == null ? null : tabKey(activeTab!),
   ];
 
   void persist() {
@@ -372,10 +408,8 @@ class AppState extends ChangeNotifier {
       SavedState(
         collections: collections.map((c) => c.path).toList(),
         envs: Map<String, String>.from(activeEnv),
-        tabs: tabs.where((t) => t.isRequest).map((t) => t.filePath).toList(),
-        activeTab: (activeTab != null && activeTab!.isRequest)
-            ? activeTab!.filePath
-            : null,
+        tabs: tabs.map(tabKey).toList(),
+        activeTab: activeTab == null ? null : tabKey(activeTab!),
         sidebarWidth: sidebarWidth,
         splitFraction: splitFraction,
         sidebarVisible: sidebarVisible,

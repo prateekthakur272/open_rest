@@ -550,56 +550,36 @@ class _Stat extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.pal;
     return Container(
-      decoration: BoxDecoration(
-        color: p.bg,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      foregroundDecoration: BoxDecoration(
-        border: Border.all(color: p.border),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      padding: const EdgeInsets.all(14),
+      decoration: _surface(p),
+      child: Row(
+        spacing: 12,
         children: [
-          Container(height: 3, color: color),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(child: Ico(icon, tint: color, size: 18)),
+          ),
+          Flexible(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  spacing: 8,
-                  children: [
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Center(child: Ico(icon, tint: color, size: 16)),
-                    ),
-                    Flexible(
-                      child: T(
-                        label.toUpperCase(),
-                        color: p.muted,
-                        size: 10.5,
-                        weight: FontWeight.w600,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
                 T(
                   '$count',
                   key: ValueKey('stat-$id'),
-                  size: 24,
+                  size: 22,
                   weight: FontWeight.w600,
-                  mono: true,
+                ),
+                T(
+                  label,
+                  color: p.muted,
+                  size: 12,
                   maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
