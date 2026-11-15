@@ -17,6 +17,7 @@ import 'package:open_rest/components/overlay.dart';
 import 'package:open_rest/components/text.dart';
 import 'package:open_rest/features/request/request_pane.dart';
 import 'package:open_rest/features/runner/runner_view.dart';
+import 'package:open_rest/features/shell/env_selector.dart';
 import 'package:open_rest/features/shell/menus.dart';
 import 'package:open_rest/features/shell/modals.dart';
 import 'package:open_rest/features/shell/title_menus.dart';
@@ -498,16 +499,6 @@ class _TitleBar extends StatelessWidget {
 }
 
 /// The header, as it always was: logo, name, collection, environments and the main actions.
-/// Text for the closed environment menu: the collection environment, the global one, or both.
-String _envLabel(String? global, String? collection) {
-  if (collection != null && global != null) {
-    return '$collection · Global: $global';
-  }
-  if (collection != null) return collection;
-  if (global != null) return 'Global: $global';
-  return 'No Environment';
-}
-
 class _TopBar extends StatelessWidget {
   const _TopBar({required this.state});
   final AppState state;
@@ -516,7 +507,6 @@ class _TopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.pal;
     final col = state.currentCollection;
-    final globalCur = state.globalEnvName();
     return Container(
       height: 44,
       color: p.panel,
@@ -546,34 +536,7 @@ class _TopBar extends StatelessWidget {
                 T('/', color: p.muted, size: 12),
               ],
               const Spacer(),
-              GroupedDropdown(
-                label: _envLabel(
-                  globalCur,
-                  col == null ? null : state.envName(col.path),
-                ),
-                color:
-                    globalCur != null ||
-                        (col != null && state.envName(col.path) != null)
-                    ? p.ok
-                    : p.muted,
-                groups: [
-                  if (col != null)
-                    DropdownGroup(
-                      title: 'Collection',
-                      noneLabel: 'No Environment',
-                      options: col.environments.map((e) => e.name).toList(),
-                      selected: state.envName(col.path),
-                      onSelect: (v) => state.setEnv(col.path, v),
-                    ),
-                  DropdownGroup(
-                    title: 'Global',
-                    noneLabel: 'No Global',
-                    options: state.globalEnvs.map((e) => e.name).toList(),
-                    selected: globalCur,
-                    onSelect: state.setGlobalEnv,
-                  ),
-                ],
-              ),
+              EnvSelector(state: state, collection: col),
               if (col != null) ...[
                 _TopBtn(
                   label: 'Environments',

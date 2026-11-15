@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart' hide Chip, ThemeMode;
 import 'package:open_rest/app/app_state.dart';
 import 'package:open_rest/features/shell/app.dart';
+import 'package:open_rest/features/shell/env_selector.dart';
 import 'package:open_rest/theme/theme.dart';
 
 import 'helpers.dart';
@@ -16,6 +17,8 @@ Widget host(AppState s) => MaterialApp(
 );
 
 void main() {
+  envSelectorTests();
+  envSummaryTests();
   testWidgets('the shell renders and every dialog opens without errors', (
     t,
   ) async {
@@ -67,4 +70,32 @@ void captureErrors() {
 List<String> errors(WidgetTester t) {
   t.takeException();
   return List.of(_errors);
+}
+
+void envSelectorTests() {
+  testWidgets('environment selector shows both lists in one popover', (
+    t,
+  ) async {
+    useTempHome();
+    captureErrors();
+    t.view.physicalSize = const Size(1360, 860);
+    t.view.devicePixelRatio = 1;
+    final s = AppState();
+    await t.pumpWidget(host(s));
+    await t.pump();
+    expect(find.text('No environment'), findsOneWidget);
+    await t.tap(find.text('No environment'));
+    await t.pump(const Duration(milliseconds: 300));
+    expect(find.text('No global'), findsOneWidget);
+    expect(errors(t), isEmpty);
+  });
+}
+
+void envSummaryTests() {
+  test('the chip text names the active environments', () {
+    expect(envSummary('dev', 'shared'), 'dev + shared (global)');
+    expect(envSummary('dev', null), 'dev');
+    expect(envSummary(null, 'shared'), 'shared (global)');
+    expect(envSummary(null, null), 'No environment');
+  });
 }
