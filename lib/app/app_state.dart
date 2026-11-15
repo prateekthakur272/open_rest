@@ -10,6 +10,8 @@ import 'package:open_rest/core/logging/log.dart';
 import 'package:open_rest/core/model/model.dart';
 import 'package:open_rest/core/run/runner.dart';
 import 'package:open_rest/core/storage/storage.dart';
+import 'package:open_rest/features/dialogs/node_settings_controller.dart';
+import 'package:open_rest/features/dialogs/node_settings_logic.dart';
 import 'package:open_rest/platform/platform.dart';
 import 'package:open_rest/utils/json.dart';
 import 'package:path/path.dart' as p;
@@ -405,6 +407,7 @@ class AppState extends ChangeNotifier {
     ApiRequest req, {
     RunnerSession? runner,
     WorkflowSession? workflow,
+    CollectionSession? collection,
   }) {
     final t = RequestTab(
       id: nextId++,
@@ -413,6 +416,7 @@ class AppState extends ChangeNotifier {
       req: req,
       runner: runner,
       workflow: workflow,
+      collection: collection,
     );
     t.onChange = notifyListeners;
     return t;
@@ -453,8 +457,15 @@ class AppState extends ChangeNotifier {
   void reload(String path) {
     final i = collections.indexWhere((c) => c.path == path);
     if (i >= 0) {
-      collections = List<Collection>.of(collections)
-        ..[i] = Collections.load(path);
+      final c = Collections.load(path);
+      collections = List<Collection>.of(collections)..[i] = c;
+      for (final t in tabs) {
+        final cs = t.collection;
+        if (cs != null && t.collectionPath == path) {
+          cs.name = c.name;
+          cs.controller.rebase();
+        }
+      }
     }
   }
 
@@ -480,6 +491,36 @@ class AppState extends ChangeNotifier {
     activeTabId = t.id;
     selectedCollection = col;
     persist();
+  }
+
+  /// The open collection tab of [path], if any.
+  RequestTab? collectionTab(String path) =>
+      firstMatch(tabs, (t) => t.collection != null && t.collectionPath == path);
+
+  /// Opens (or focuses) the overview / settings tab of a collection, optionally on [page].
+  void openCollectionTab(String path, {NodeSection? page}) {
+    final c = collection(path);
+    if (c == null) return;
+    final ex = collectionTab(path);
+    if (ex != null) {
+      if (page != null) ex.collection!.page = page;
+      activeTabId = ex.id;
+      selectedCollection = path;
+      return;
+    }
+    final t = newTab(
+      path,
+      path,
+      ApiRequest(name: c.name),
+      collection: CollectionSession(
+        NodeSettingsController(this, path, path),
+        c.name,
+        page ?? NodeSection.general,
+      ),
+    );
+    tabs.add(t);
+    activeTabId = t.id;
+    selectedCollection = path;
   }
 
   /// Runner nodes for a collection (folder == null) or one folder, in tree order.
@@ -556,6 +597,10 @@ class AppState extends ChangeNotifier {
   void save(RequestTab tab) => guard(() {
     if (tab.workflow != null) {
       saveWorkflow(tab);
+      return;
+    }
+    if (tab.collection != null) {
+      tab.collection!.controller.save();
       return;
     }
     if (tab.runner != null) return;

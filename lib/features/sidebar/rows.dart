@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:open_rest/app/app_state.dart';
+import 'package:open_rest/components/buttons.dart';
 import 'package:open_rest/components/context_menu.dart';
 import 'package:open_rest/components/inline_rename.dart';
 import 'package:open_rest/components/layout.dart';
@@ -66,9 +67,8 @@ class CollectionRow extends StatelessWidget {
           action: () => state.modal = ModalEnvs(collection: c.path),
         ),
         MenuItem(
-          'Settings',
-          action: () =>
-              state.modal = ModalNodeSettings(collection: c.path, node: c.path),
+          'Overview / Settings',
+          action: () => state.openCollectionTab(c.path),
         ),
         MenuItem(
           'Variables',
@@ -80,7 +80,7 @@ class CollectionRow extends StatelessWidget {
           'Export…',
           action: () => state.modal = ModalExport(collection: c.path),
         ),
-        MenuItem('Show in Folder', action: () => Platform.reveal(c.path)),
+        MenuItem(Platform.revealLabel, action: () => Platform.reveal(c.path)),
         MenuItem('Reload', action: () => state.reload(c.path)),
         MenuItem(
           'Close Collection',
@@ -130,6 +130,13 @@ class CollectionRow extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
+        if (hovered)
+          IconBtn(
+            key: ValueKey('overview:${c.path}'),
+            icon: Ic.info,
+            size: 15,
+            onClick: () => state.openCollectionTab(c.path),
+          ),
         if (!hovered) ...[
           if (env != null)
             Container(
@@ -195,7 +202,7 @@ class FolderRow extends StatelessWidget {
         const MenuItem(null),
         MenuItem('Rename', action: () => state.promptRename(row.col, f)),
         MenuItem('Clone', action: () => state.promptClone(row.col, f)),
-        MenuItem('Show in Folder', action: () => Platform.reveal(f.path)),
+        MenuItem(Platform.revealLabel, action: () => Platform.reveal(f.path)),
         MenuItem(
           'Delete',
           danger: true,
@@ -344,7 +351,7 @@ class RequestRow extends StatelessWidget {
         )
       else
         const MenuItem(null),
-      MenuItem('Show in Folder', action: () => Platform.reveal(r.path)),
+      MenuItem(Platform.revealLabel, action: () => Platform.reveal(r.path)),
       MenuItem(
         'Delete',
         danger: true,

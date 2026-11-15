@@ -7,6 +7,8 @@ import 'package:open_rest/core/run/runner.dart';
 import 'package:open_rest/core/run/workflow_model.dart';
 import 'package:open_rest/core/run/workflow_tree.dart';
 import 'package:open_rest/core/run/workflow_run_models.dart';
+import 'package:open_rest/features/dialogs/node_settings_controller.dart';
+import 'package:open_rest/features/dialogs/node_settings_logic.dart';
 import 'package:open_rest/features/runner/runner_logic.dart' show ResultFilter;
 
 /// A list that notifies on every mutation.
@@ -390,6 +392,49 @@ class WorkflowSession extends SessionNotifier {
       update((w) => w.copyWith(steps: w.steps.mapStep(id, f)));
 }
 
+/// Editable state of a collection tab: the settings draft, the page shown and the docs mode.
+class CollectionSession extends SessionNotifier {
+  CollectionSession(this.controller, this._name, NodeSection page) {
+    controller.section = page;
+    controller.addListener(changed);
+  }
+
+  final NodeSettingsController controller;
+  String _name;
+  bool _editingDocs = false;
+  bool _previewingDocs = false;
+
+  String get name => _name;
+  set name(String v) {
+    if (v == _name) return;
+    _name = v;
+    changed();
+  }
+
+  /// Page shown; [NodeSection.general] is the overview.
+  NodeSection get page => controller.section;
+  set page(NodeSection v) => controller.section = v;
+
+  /// Whether the documentation block shows its editor instead of the rendered text.
+  bool get editingDocs => _editingDocs;
+  set editingDocs(bool v) {
+    if (v == _editingDocs) return;
+    _editingDocs = v;
+    if (!v) _previewingDocs = false;
+    changed();
+  }
+
+  /// Whether edit mode currently shows the rendered draft instead of the editor.
+  bool get previewingDocs => _previewingDocs;
+  set previewingDocs(bool v) {
+    if (v == _previewingDocs) return;
+    _previewingDocs = v;
+    changed();
+  }
+
+  bool get dirty => controller.dirty;
+}
+
 /// Editable state of a request tab.
 class RequestTab extends SessionNotifier {
   RequestTab({
@@ -399,20 +444,24 @@ class RequestTab extends SessionNotifier {
     required ApiRequest req,
     this.runner,
     this.workflow,
+    this.collection,
   }) : _draft = req,
        _saved = req {
     responses = StateList<ExecResult>(changed);
     runner?.onChange = changed;
     workflow?.onChange = changed;
+    collection?.onChange = changed;
   }
 
   final int id;
   final String collectionPath;
   final RunnerSession? runner;
   final WorkflowSession? workflow;
+  final CollectionSession? collection;
 
-  bool get isRequest => runner == null && workflow == null;
-  String get title => workflow?.draft.name ?? draft.name;
+  bool get isRequest =>
+      runner == null && workflow == null && collection == null;
+  String get title => collection?.name ?? workflow?.draft.name ?? draft.name;
 
   String _filePath;
   ApiRequest _draft;
@@ -538,7 +587,7 @@ class RequestTab extends SessionNotifier {
     result = r;
   }
 
-  bool get dirty => workflow != null ? workflow!.dirty : draft != saved;
+  bool get dirty => collection?.dirty ?? workflow?.dirty ?? draft != saved;
 }
 
 /// Which menu of the in-window menu bar is open, and where things are on screen (so a click elsewhere can close it).

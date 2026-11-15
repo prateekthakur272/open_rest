@@ -16,6 +16,7 @@ import 'package:open_rest/components/modifiers.dart';
 import 'package:open_rest/components/overlay.dart';
 import 'package:open_rest/components/text.dart';
 import 'package:open_rest/features/request/request_pane.dart';
+import 'package:open_rest/features/collection/collection_view.dart';
 import 'package:open_rest/features/runner/runner_view.dart';
 import 'package:open_rest/features/shell/env_selector.dart';
 import 'package:open_rest/features/shell/menus.dart';
@@ -324,7 +325,13 @@ class _Body extends StatelessWidget {
             .toDouble();
         final tab = state.activeTab;
         Widget content;
-        if (tab?.workflow != null) {
+        if (tab?.collection != null) {
+          content = CollectionView(
+            key: ValueKey(tab!.id),
+            state: state,
+            tab: tab,
+          );
+        } else if (tab?.workflow != null) {
           content = WorkflowView(
             key: ValueKey(tab!.id),
             state: state,
@@ -523,14 +530,20 @@ class _TopBar extends StatelessWidget {
                 child: T('OpenRest', weight: FontWeight.w700, size: 15),
               ),
               if (col != null) ...[
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 200),
-                  child: T(
-                    col.name,
-                    color: p.muted,
-                    size: 12,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                Clickable(
+                  key: const ValueKey('top-collection'),
+                  onClick: () => state.openCollectionTab(col.path),
+                  cursor: SystemMouseCursors.click,
+                  borderRadius: BorderRadius.circular(4),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 200),
+                    child: T(
+                      col.name,
+                      color: p.muted,
+                      size: 12,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
                 T('/', color: p.muted, size: 12),
@@ -737,7 +750,9 @@ class _TabStripState extends State<_TabStrip> {
                         spacing: 6,
                         children: [
                           if (t.sending) const MiniSpinner(),
-                          if (t.workflow != null)
+                          if (t.collection != null)
+                            Ico(Ic.folder, tint: p.accent, size: 14)
+                          else if (t.workflow != null)
                             Ico(
                               Ic.workflow,
                               tint: t.workflow!.running ? p.accent : p.muted,
@@ -828,7 +843,7 @@ class _TabStripState extends State<_TabStrip> {
                         ),
                         if (t.isRequest)
                           MenuItem(
-                            'Show in Folder',
+                            Platform.revealLabel,
                             action: () => Platform.reveal(t.filePath),
                           ),
                       ],

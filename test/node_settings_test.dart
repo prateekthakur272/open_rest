@@ -1,7 +1,7 @@
-import 'package:flutter/widgets.dart'
-    show EditableText, FlutterError, Size, Text, ValueKey;
+import 'package:flutter/widgets.dart' show FlutterError, Size, ValueKey;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_rest/app/app_state.dart';
+import 'package:open_rest/components/text.dart';
 import 'package:open_rest/core/model/model.dart';
 import 'package:open_rest/core/storage/storage.dart';
 import 'package:open_rest/features/dialogs/node_settings_logic.dart';
@@ -155,13 +155,12 @@ void main() {
     await t.tap(find.byKey(const ValueKey('nav-headers')));
     await t.pump();
     expect(find.text('1'), findsWidgets);
-    await t.enterText(find.byType(EditableText).first, 'X-B');
+    await t.tap(find.text('Header').last);
+    await t.pump();
+    t.testTextInput.enterText('X-B');
     await t.pump();
     expect(find.text('Unsaved changes'), findsOneWidget);
-    expect(
-      t.widget<Text>(find.byKey(const ValueKey('badge-headers'))).data,
-      '2',
-    );
+    expect(t.widget<T>(find.byKey(const ValueKey('badge-headers'))).text, '2');
 
     // Closing asks first; Cancel keeps the draft.
     await t.tap(find.text('Close'));
@@ -179,13 +178,12 @@ void main() {
     await t.tap(find.text('Revert'));
     await t.pump();
     expect(find.text('Unsaved changes'), findsNothing);
-    expect(
-      t.widget<Text>(find.byKey(const ValueKey('badge-headers'))).data,
-      '1',
-    );
+    expect(t.widget<T>(find.byKey(const ValueKey('badge-headers'))).text, '1');
 
     // Save keeps the dialog open and clears the indicator.
-    await t.enterText(find.byType(EditableText).first, 'X-B');
+    await t.tap(find.text('Header').last);
+    await t.pump();
+    t.testTextInput.enterText('X-B');
     await t.pump();
     await t.tap(find.text('Save'));
     await t.pump();
@@ -195,7 +193,9 @@ void main() {
     expect(s.modal, isA<ModalNodeSettings>());
 
     // Edit again, then Discard closes without saving.
-    await t.enterText(find.byType(EditableText).first, 'X-C');
+    await t.tap(find.text('Header').last);
+    await t.pump();
+    t.testTextInput.enterText('X-C');
     await t.pump();
     await t.tap(find.text('Close'));
     await t.pump();

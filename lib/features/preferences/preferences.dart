@@ -494,7 +494,7 @@ class _PreferencesDialogState extends State<PreferencesDialog> {
         _Section.Data,
         'Storage location',
         Btn(
-          label: 'Show in folder',
+          label: Platform.revealLabel,
           onClick: () => Platform.reveal(AppStore.dir),
         ),
         desc: AppStore.dir,

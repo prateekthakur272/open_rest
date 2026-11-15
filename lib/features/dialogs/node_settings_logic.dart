@@ -128,3 +128,30 @@ FolderNode? findFolder(List<Node> nodes, String path) {
 
 /// "3 requests", "1 folder".
 String countLabel(int n, String noun) => '$n $noun${n == 1 ? '' : 's'}';
+
+/// Number of requests per HTTP method below [nodes], common methods first.
+List<MapEntry<String, int>> methodCounts(List<Node> nodes) {
+  final m = <String, int>{};
+  void walk(List<Node> ns) {
+    for (final n in ns) {
+      if (n is RequestNode) {
+        final k = n.request.method.toUpperCase();
+        m[k] = (m[k] ?? 0) + 1;
+      } else if (n is FolderNode) {
+        walk(n.children);
+      }
+    }
+  }
+
+  walk(nodes);
+  const order = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+  int rank(String k) {
+    final i = order.indexOf(k);
+    return i < 0 ? order.length : i;
+  }
+
+  return m.entries.toList()..sort((a, b) {
+    final r = rank(a.key).compareTo(rank(b.key));
+    return r != 0 ? r : a.key.compareTo(b.key);
+  });
+}

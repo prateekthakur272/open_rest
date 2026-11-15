@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:open_rest/app/app_state.dart';
 import 'package:open_rest/components/field.dart';
 import 'package:open_rest/components/modifiers.dart';
+import 'package:open_rest/features/dialogs/node_settings_logic.dart';
 import 'package:open_rest/components/text.dart';
 import 'package:open_rest/core/model/model.dart';
 import 'package:open_rest/theme/theme.dart';
@@ -167,11 +168,9 @@ class _PaletteState extends State<Palette> {
       );
       act(
         'Collection settings',
-        () => state.modal = ModalNodeSettings(
-          collection: col.path,
-          node: col.path,
-        ),
+        () => state.openCollectionTab(col.path, page: NodeSection.headers),
       );
+      act('Collection overview', () => state.openCollectionTab(col.path));
       act(
         'Export collection…',
         () => state.modal = ModalExport(collection: col.path),

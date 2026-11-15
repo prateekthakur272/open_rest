@@ -19,7 +19,7 @@ IconData _menuIcon(String l) {
   if (l.startsWith('Variables')) return Ic.variables;
   if (l.startsWith('Rename')) return Ic.rename;
   if (l.startsWith('Clone')) return Ic.clone;
-  if (l.startsWith('Show in Folder')) return Ic.reveal;
+  if (l.startsWith('Show in ')) return Ic.reveal;
   if (l.startsWith('Reload')) return Ic.refresh;
   if (l.startsWith('Close Collection') || l.startsWith('Close')) {
     return Ic.close;

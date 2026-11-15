@@ -76,12 +76,21 @@ class Platform {
     }
   }
 
-  /// Opens the folder containing [path] (or [path] itself when it is a directory) in the file manager.
+  /// Label for the reveal action in the platform's file manager.
+  static String get revealLabel => io.Platform.isMacOS
+      ? 'Show in Finder'
+      : (io.Platform.isWindows ? 'Show in Explorer' : 'Show in file manager');
+
+  /// Shows [path] in the file manager: its parent folder opens with the item selected.
   static Future<void> reveal(String path) async {
     try {
-      await _open(
-        io.FileSystemEntity.isDirectorySync(path) ? path : p.dirname(path),
-      );
+      if (io.Platform.isMacOS) {
+        await io.Process.run('open', ['-R', path]);
+      } else if (io.Platform.isWindows) {
+        await io.Process.run('explorer', ['/select,', path]);
+      } else {
+        await _open(p.dirname(path));
+      }
     } catch (_) {}
   }
 
