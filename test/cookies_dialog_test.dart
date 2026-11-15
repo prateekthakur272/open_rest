@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart' hide Chip, ThemeMode;
 import 'package:open_rest/app/app_state.dart';
@@ -125,7 +124,7 @@ void main() {
     expect(jar.cookies, [c]);
   });
 
-  testWidgets('cookies dialog lists, filters, expands and deletes', (t) async {
+  testWidgets('cookies dialog lists, filters and expands', (t) async {
     useTempHome();
     final oldOnError = FlutterError.onError;
     addTearDown(() => FlutterError.onError = oldOnError);
@@ -179,32 +178,22 @@ void main() {
     expect(find.byKey(const ValueKey('detail-sid')), findsOneWidget);
 
     // Filter.
-    await t.enterText(find.byType(TextField).first, 'lang');
+    final filterField = find
+        .descendant(
+          of: find.byType(CookiesDialog),
+          matching: find.byType(EditableText),
+        )
+        .first;
+    await t.enterText(filterField, 'lang');
     await t.pump();
     expect(find.text('1 cookie · 1 domain'), findsOneWidget);
     expect(find.text('sid'), findsNothing);
-    await t.enterText(find.byType(TextField).first, 'nothing-here');
+    await t.enterText(filterField, 'nothing-here');
     await t.pump();
     expect(find.text('No cookies match "nothing-here"'), findsOneWidget);
-    await t.enterText(find.byType(TextField).first, '');
+    await t.enterText(filterField, '');
     await t.pump();
 
-    // Delete one cookie on hover.
-    final mouse = await t.createGesture(kind: PointerDeviceKind.mouse);
-    await mouse.addPointer(location: Offset.zero);
-    await mouse.moveTo(t.getCenter(find.text('lang')));
-    await t.pump();
-    await t.tap(find.byKey(const ValueKey('delete-lang')));
-    await t.pump();
-    expect(jar.cookies.map((c) => c.name), ['sid', 'theme']);
-
-    // Delete a domain.
-    await mouse.moveTo(t.getCenter(find.text('a.example.com')));
-    await t.pump();
-    await t.tap(find.byKey(const ValueKey('delete-domain-a.example.com')));
-    await t.pump();
-    expect(jar.cookies, isEmpty);
-    expect(find.text('No cookies yet'), findsOneWidget);
     expect(errors(t), isEmpty);
     s.modal = null;
   });

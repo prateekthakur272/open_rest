@@ -4,6 +4,8 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart' as crypto;
+import 'package:open_rest/core/logging/log.dart';
 import 'package:open_rest/core/model/model.dart';
 import 'package:path/path.dart' as p;
 
@@ -168,21 +170,111 @@ class CookieJar {
   }
 }
 
+/// Raised when a client certificate cannot be loaded; the message is safe to show.
+class _TlsSetupException implements Exception {
+  final String message;
+  _TlsSetupException(this.message);
+}
+
 /// Sends HTTP requests and follows redirects.
 class HttpExecutor {
   HttpExecutor._();
 
   static final CookieJar cookies = CookieJar();
 
-  static String? _cachedKey;
-  static HttpClient? _cachedClient;
+  static const int _maxClients = 8;
 
-  static HttpClient _client(AppSettings s) {
+  /// Clients keyed by settings and certificate; the oldest is closed once the map is full.
+  static final Map<String, HttpClient> _clients = {};
+
+  /// Identifies the certificate files and passphrase without keeping the passphrase.
+  static String _tlsKey(TlsConfig? t) {
+    if (t == null) return '';
+    String stamp(String path) {
+      if (path.isEmpty) return '';
+      final f = File(path);
+      try {
+        return '$path@${f.existsSync() ? f.lastModifiedSync().microsecondsSinceEpoch : 'missing'}';
+      } catch (_) {
+        return '$path@?';
+      }
+    }
+
+    final pass = crypto.sha256.convert(utf8.encode(t.passphrase)).toString();
+    return [
+      t.format.name,
+      stamp(t.pfxPath),
+      stamp(t.certPath),
+      stamp(t.keyPath),
+      stamp(t.caPath),
+      pass,
+    ].join('|');
+  }
+
+  static SecurityContext _context(TlsConfig t) {
+    void need(String path, String what) {
+      if (path.isEmpty) {
+        throw _TlsSetupException('Client certificate $what is not set');
+      }
+      if (!File(path).existsSync()) {
+        Log.warning('http', 'Client certificate file not found: $path');
+        throw _TlsSetupException('Client certificate not found: $path');
+      }
+    }
+
+    final ctx = SecurityContext(withTrustedRoots: true);
+    final pass = t.passphrase.isEmpty ? null : t.passphrase;
+    final pfx = t.format == TlsFormat.pfx;
+    final hasCert = (pfx ? t.pfxPath : t.certPath).isNotEmpty;
+    if (!hasCert && t.caPath.isEmpty) {
+      throw _TlsSetupException('Client certificate file is not set');
+    }
+    try {
+      // Without a certificate only the CA bundle is applied (trusting a private server).
+      if (hasCert && pfx) {
+        need(t.pfxPath, 'file');
+        ctx
+          ..useCertificateChain(t.pfxPath, password: pass)
+          ..usePrivateKey(t.pfxPath, password: pass);
+      } else if (hasCert) {
+        need(t.certPath, 'file');
+        need(t.keyPath, 'private key');
+        ctx
+          ..useCertificateChain(t.certPath)
+          ..usePrivateKey(t.keyPath, password: pass);
+      }
+    } on TlsException catch (_) {
+      Log.warning('http', 'Could not read the client certificate');
+      throw _TlsSetupException(
+        t.format == TlsFormat.pfx
+            ? 'Could not read the client certificate: wrong passphrase or unsupported file '
+                  '(a PKCS#12 file from OpenSSL 3 may need to be re-exported with -legacy)'
+            : 'Could not read the client certificate: wrong passphrase or unsupported file',
+      );
+    }
+    if (t.caPath.isNotEmpty) {
+      need(t.caPath, 'CA file');
+      try {
+        ctx.setTrustedCertificates(t.caPath);
+      } on TlsException catch (_) {
+        Log.warning('http', 'Could not read the CA certificate: ${t.caPath}');
+        throw _TlsSetupException(
+          'Could not read the CA certificate: ${t.caPath}',
+        );
+      }
+    }
+    return ctx;
+  }
+
+  static HttpClient _client(AppSettings s, TlsConfig? tls) {
     final key =
-        '${s.followRedirects}|${s.sslVerify}|${s.proxyEnabled}|${s.proxyHost}|${s.proxyPort}';
-    if (_cachedKey == key && _cachedClient != null) return _cachedClient!;
-    _cachedClient?.close();
-    final c = HttpClient()
+        '${s.followRedirects}|${s.sslVerify}|${s.proxyEnabled}|${s.proxyHost}|${s.proxyPort}|${_tlsKey(tls)}';
+    final hit = _clients.remove(key);
+    if (hit != null) {
+      _clients[key] = hit;
+      return hit;
+    }
+    final c = HttpClient(context: tls == null ? null : _context(tls))
       ..autoUncompress = false
       ..userAgent = null
       ..connectionTimeout = const Duration(seconds: 30);
@@ -193,9 +285,19 @@ class HttpExecutor {
     } else {
       c.findProxy = (uri) => 'DIRECT';
     }
-    _cachedKey = key;
-    _cachedClient = c;
+    _clients[key] = c;
+    while (_clients.length > _maxClients) {
+      _clients.remove(_clients.keys.first)?.close();
+    }
     return c;
+  }
+
+  /// Closes every cached client.
+  static void closeClients() {
+    for (final c in _clients.values) {
+      c.close(force: true);
+    }
+    _clients.clear();
   }
 
   static const String _unreserved =
@@ -355,6 +457,8 @@ class HttpExecutor {
         error: 'Could not connect: ${e.osError?.message ?? e.message}',
         timeMs: elapsed(),
       );
+    } on _TlsSetupException catch (e) {
+      return HttpResult(error: e.message, timeMs: elapsed());
     } on FileSystemException catch (e) {
       // Missing-file and access-denied errors carry only the path as message.
       final code = e.osError?.errorCode;
@@ -389,7 +493,7 @@ class HttpExecutor {
     Uint8List? payload0,
     Stopwatch sw,
   ) async {
-    final client = _client(settings);
+    final client = _client(settings, req.tls);
     var method = req.method.toUpperCase();
     var uri = uri0;
     var headers = headers0;

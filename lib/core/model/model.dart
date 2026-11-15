@@ -190,6 +190,66 @@ class Auth {
   );
 }
 
+/// Where a client certificate setting comes from.
+enum TlsMode { inherit, none, custom }
+
+/// File format of a client certificate.
+enum TlsFormat { pfx, pem }
+
+/// TLS client certificate settings. Only file paths are stored.
+class TlsConfig {
+  final TlsMode mode;
+  final TlsFormat format;
+  final String pfxPath;
+  final String certPath;
+  final String keyPath;
+  final String caPath;
+  final String passphrase;
+
+  const TlsConfig({
+    this.mode = TlsMode.inherit,
+    this.format = TlsFormat.pfx,
+    this.pfxPath = '',
+    this.certPath = '',
+    this.keyPath = '',
+    this.caPath = '',
+    this.passphrase = '',
+  });
+
+  TlsConfig copyWith({
+    TlsMode? mode,
+    TlsFormat? format,
+    String? pfxPath,
+    String? certPath,
+    String? keyPath,
+    String? caPath,
+    String? passphrase,
+  }) => TlsConfig(
+    mode: mode ?? this.mode,
+    format: format ?? this.format,
+    pfxPath: pfxPath ?? this.pfxPath,
+    certPath: certPath ?? this.certPath,
+    keyPath: keyPath ?? this.keyPath,
+    caPath: caPath ?? this.caPath,
+    passphrase: passphrase ?? this.passphrase,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is TlsConfig &&
+      other.mode == mode &&
+      other.format == format &&
+      other.pfxPath == pfxPath &&
+      other.certPath == certPath &&
+      other.keyPath == keyPath &&
+      other.caPath == caPath &&
+      other.passphrase == passphrase;
+
+  @override
+  int get hashCode =>
+      Object.hash(mode, format, pfxPath, certPath, keyPath, caPath, passphrase);
+}
+
 const HTTP_METHODS = [
   'GET',
   'POST',
@@ -229,6 +289,7 @@ class ApiRequest {
   final String docs;
   final bool encodeUrl;
   final int timeoutMs;
+  final TlsConfig tls;
 
   const ApiRequest({
     this.name = 'New Request',
@@ -257,6 +318,7 @@ class ApiRequest {
     this.docs = '',
     this.encodeUrl = true,
     this.timeoutMs = 0,
+    this.tls = const TlsConfig(),
   });
 
   ApiRequest copyWith({
@@ -286,6 +348,7 @@ class ApiRequest {
     String? docs,
     bool? encodeUrl,
     int? timeoutMs,
+    TlsConfig? tls,
   }) => ApiRequest(
     name: name ?? this.name,
     seq: seq ?? this.seq,
@@ -313,6 +376,7 @@ class ApiRequest {
     docs: docs ?? this.docs,
     encodeUrl: encodeUrl ?? this.encodeUrl,
     timeoutMs: timeoutMs ?? this.timeoutMs,
+    tls: tls ?? this.tls,
   );
 
   @override
@@ -343,7 +407,8 @@ class ApiRequest {
       other.tests == tests &&
       other.docs == docs &&
       other.encodeUrl == encodeUrl &&
-      other.timeoutMs == timeoutMs;
+      other.timeoutMs == timeoutMs &&
+      other.tls == tls;
 
   @override
   int get hashCode => Object.hashAll([
@@ -373,6 +438,7 @@ class ApiRequest {
     docs,
     encodeUrl,
     timeoutMs,
+    tls,
   ]);
 }
 
@@ -388,6 +454,7 @@ class NodeConfig {
   final String postScript;
   final String tests;
   final String docs;
+  final TlsConfig tls;
 
   const NodeConfig({
     this.name = '',
@@ -400,6 +467,7 @@ class NodeConfig {
     this.postScript = '',
     this.tests = '',
     this.docs = '',
+    this.tls = const TlsConfig(),
   });
 
   NodeConfig copyWith({
@@ -413,6 +481,7 @@ class NodeConfig {
     String? postScript,
     String? tests,
     String? docs,
+    TlsConfig? tls,
   }) => NodeConfig(
     name: name ?? this.name,
     seq: seq ?? this.seq,
@@ -424,6 +493,7 @@ class NodeConfig {
     postScript: postScript ?? this.postScript,
     tests: tests ?? this.tests,
     docs: docs ?? this.docs,
+    tls: tls ?? this.tls,
   );
 
   @override
@@ -438,7 +508,8 @@ class NodeConfig {
       other.preScript == preScript &&
       other.postScript == postScript &&
       other.tests == tests &&
-      other.docs == docs;
+      other.docs == docs &&
+      other.tls == tls;
 
   @override
   int get hashCode => Object.hash(
@@ -452,6 +523,7 @@ class NodeConfig {
     postScript,
     tests,
     docs,
+    tls,
   );
 }
 
@@ -757,12 +829,16 @@ class PreparedRequest {
   final Body body;
   final int timeoutMs;
 
+  /// Resolved client certificate, null when none applies.
+  final TlsConfig? tls;
+
   const PreparedRequest({
     required this.method,
     required this.url,
     required this.headers,
     required this.body,
     this.timeoutMs = 0,
+    this.tls,
   });
 
   PreparedRequest copyWith({
@@ -771,12 +847,14 @@ class PreparedRequest {
     List<(String, String)>? headers,
     Body? body,
     int? timeoutMs,
+    Object? tls = _unset,
   }) => PreparedRequest(
     method: method ?? this.method,
     url: url ?? this.url,
     headers: headers ?? this.headers,
     body: body ?? this.body,
     timeoutMs: timeoutMs ?? this.timeoutMs,
+    tls: identical(tls, _unset) ? this.tls : tls as TlsConfig?,
   );
 
   @override
@@ -786,10 +864,11 @@ class PreparedRequest {
       other.url == url &&
       listEquals(other.headers, headers) &&
       other.body == body &&
-      other.timeoutMs == timeoutMs;
+      other.timeoutMs == timeoutMs &&
+      other.tls == tls;
   @override
   int get hashCode =>
-      Object.hash(method, url, Object.hashAll(headers), body, timeoutMs);
+      Object.hash(method, url, Object.hashAll(headers), body, timeoutMs, tls);
 }
 
 /// Outcome of an HTTP call.

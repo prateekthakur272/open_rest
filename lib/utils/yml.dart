@@ -543,6 +543,40 @@ class OrYaml {
     );
   }
 
+  static Map<String, dynamic> _tlsOut(TlsConfig t) {
+    if (t.mode == TlsMode.inherit) return {};
+    return Yml.m([
+      ('mode', t.mode.name),
+      ('format', t.mode == TlsMode.custom ? t.format.name : null),
+      ('pfx', t.pfxPath),
+      ('cert', t.certPath),
+      ('key', t.keyPath),
+      ('ca', t.caPath),
+      ('passphrase', t.passphrase),
+    ]);
+  }
+
+  static TlsConfig _tlsIn(dynamic v) {
+    final m = _map(v);
+    if (m == null) return const TlsConfig();
+    final mode = switch (_s(m['mode']).toLowerCase()) {
+      'none' => TlsMode.none,
+      'custom' => TlsMode.custom,
+      _ => TlsMode.inherit,
+    };
+    return TlsConfig(
+      mode: mode,
+      format: _s(m['format']).toLowerCase() == 'pem'
+          ? TlsFormat.pem
+          : TlsFormat.pfx,
+      pfxPath: _s(m['pfx']),
+      certPath: _s(m['cert']),
+      keyPath: _s(m['key']),
+      caPath: _s(m['ca']),
+      passphrase: _s(m['passphrase']),
+    );
+  }
+
   static String _txt(dynamic v) => _s(v).trimRight();
 
   static Map<String, dynamic> requestToMap(ApiRequest r) {
@@ -595,6 +629,7 @@ class OrYaml {
         Yml.m([
           ('encodeUrl', r.encodeUrl ? null : false),
           ('timeout', r.timeoutMs > 0 ? r.timeoutMs : null),
+          ('tls', _tlsOut(r.tls)),
         ]),
       ),
     ]);
@@ -635,6 +670,7 @@ class OrYaml {
       docs: _txt(m['docs']),
       encodeUrl: st?['encodeUrl'] != false,
       timeoutMs: timeout is num ? timeout.toInt() : 0,
+      tls: _tlsIn(st?['tls']),
     );
   }
 
@@ -647,6 +683,7 @@ class OrYaml {
     ('scripts', Yml.m([('pre', c.preScript), ('post', c.postScript)])),
     ('tests', c.tests),
     ('docs', c.docs),
+    ('tls', _tlsOut(c.tls)),
   ]);
 
   static const int _intMax = 2147483647;
@@ -666,6 +703,7 @@ class OrYaml {
       postScript: _txt(scripts?['post']),
       tests: _txt(m['tests']),
       docs: _txt(m['docs']),
+      tls: _tlsIn(m['tls']),
     );
   }
 

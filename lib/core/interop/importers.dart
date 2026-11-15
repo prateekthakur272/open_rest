@@ -138,6 +138,11 @@ class Importers {
     final forms = <KV>[];
     var auth = const Auth(mode: AuthMode.Inherit);
     var getMode = false;
+    var cert = '';
+    var certPass = '';
+    var key = '';
+    var ca = '';
+    var certType = '';
     var i = 1;
     String next() {
       i++;
@@ -190,6 +195,23 @@ class Importers {
           username: _before(u, ':'),
           password: _after(u, ':'),
         );
+      } else if (a == '-E' || a == '--cert') {
+        final v = next();
+        final idx = v.lastIndexOf(':');
+        if (idx > 1) {
+          cert = v.substring(0, idx);
+          certPass = v.substring(idx + 1);
+        } else {
+          cert = v;
+        }
+      } else if (a == '--key') {
+        key = next();
+      } else if (a == '--cacert') {
+        ca = next();
+      } else if (a == '--cert-type') {
+        certType = next().toUpperCase();
+      } else if (a == '--pass') {
+        certPass = next();
       } else if (a == '-b' || a == '--cookie') {
         headers.add(KV(name: 'Cookie', value: next()));
       } else if (a == '-A' || a == '--user-agent') {
@@ -213,9 +235,6 @@ class Importers {
         '--write-out',
         '-c',
         '--cookie-jar',
-        '--cacert',
-        '--cert',
-        '--key',
       }.contains(a)) {
         next();
       } else if (a.startsWith('-')) {
@@ -233,7 +252,22 @@ class Importers {
         break;
       }
     }
-    var r = ApiRequest(name: _curlName(url), auth: auth);
+    var tls = const TlsConfig();
+    if (cert.isNotEmpty || ca.isNotEmpty) {
+      final lower = cert.toLowerCase();
+      final pfx =
+          certType == 'P12' || lower.endsWith('.p12') || lower.endsWith('.pfx');
+      tls = TlsConfig(
+        mode: TlsMode.custom,
+        format: pfx ? TlsFormat.pfx : TlsFormat.pem,
+        pfxPath: pfx ? cert : '',
+        certPath: pfx ? '' : cert,
+        keyPath: pfx ? '' : key,
+        caPath: ca,
+        passphrase: certPass,
+      );
+    }
+    var r = ApiRequest(name: _curlName(url), auth: auth, tls: tls);
     final joined = data.join('&');
     if (forms.isNotEmpty) {
       r = r.copyWith(bodyMode: BodyMode.Multipart, multipart: forms);

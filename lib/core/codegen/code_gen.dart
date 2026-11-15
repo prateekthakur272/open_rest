@@ -96,6 +96,25 @@ class CodeGen {
           sb.write(' \\\n  -H ');
           sb.write(_sh('${x.$1}: ${x.$2}'));
         }
+        final tls = r.tls;
+        if (tls != null && tls.mode == TlsMode.custom) {
+          final pfx = tls.format == TlsFormat.pfx;
+          final hasPass = tls.passphrase.isNotEmpty;
+          if (pfx && tls.pfxPath.isNotEmpty) {
+            sb.write(' \\\n  --cert ');
+            sb.write(
+              _sh(hasPass ? '${tls.pfxPath}:<passphrase>' : tls.pfxPath),
+            );
+            sb.write(' --cert-type P12');
+          } else if (!pfx && tls.certPath.isNotEmpty) {
+            sb.write(' \\\n  --cert ${_sh(tls.certPath)}');
+            if (tls.keyPath.isNotEmpty) sb.write(' --key ${_sh(tls.keyPath)}');
+            if (hasPass) sb.write(" --pass '<passphrase>'");
+          }
+          if (tls.caPath.isNotEmpty) {
+            sb.write(' \\\n  --cacert ${_sh(tls.caPath)}');
+          }
+        }
         if (body != null) {
           sb.write(' \\\n  --data-raw ');
           sb.write(_sh(body));

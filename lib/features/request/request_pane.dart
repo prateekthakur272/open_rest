@@ -20,6 +20,7 @@ import 'package:open_rest/core/http/http.dart';
 import 'package:open_rest/core/interop/importers.dart';
 import 'package:open_rest/core/model/model.dart';
 import 'package:open_rest/core/run/workflow_engine.dart';
+import 'package:open_rest/features/request/tls_editor.dart';
 import 'package:open_rest/features/response/response_pane.dart';
 import 'package:open_rest/platform/platform.dart';
 import 'package:open_rest/theme/icons.dart';
@@ -706,51 +707,74 @@ class RequestPane extends StatelessWidget {
           ),
         );
       case 'Settings':
-        content = Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            spacing: 12,
-            children: [
-              LabeledCheck(
-                label: 'Encode URL (escape unsafe characters before sending)',
-                checked: r.encodeUrl,
-                onChange: (v) => upd((it) => it.copyWith(encodeUrl: v)),
-              ),
-              Row(
+        content = ScrollBox(
+          content: [
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
-                spacing: 8,
+                spacing: 12,
                 children: [
-                  const T('Timeout (ms, 0 = use global)'),
-                  SizedBox(
-                    width: 100,
-                    child: Field(
-                      value: r.timeoutMs.toString(),
-                      onChange: (v) {
-                        final digits = v
-                            .split('')
-                            .where(
-                              (c) =>
-                                  c.codeUnitAt(0) >= 48 &&
-                                  c.codeUnitAt(0) <= 57,
-                            )
-                            .join();
-                        final cut = digits.length > 7
-                            ? digits.substring(0, 7)
-                            : digits;
-                        upd(
-                          (it) =>
-                              it.copyWith(timeoutMs: int.tryParse(cut) ?? 0),
-                        );
-                      },
-                      highlightVars: false,
-                    ),
+                  LabeledCheck(
+                    label:
+                        'Encode URL (escape unsafe characters before sending)',
+                    checked: r.encodeUrl,
+                    onChange: (v) => upd((it) => it.copyWith(encodeUrl: v)),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    spacing: 8,
+                    children: [
+                      const T('Timeout (ms, 0 = use global)'),
+                      SizedBox(
+                        width: 100,
+                        child: Field(
+                          value: r.timeoutMs.toString(),
+                          onChange: (v) {
+                            final digits = v
+                                .split('')
+                                .where(
+                                  (c) =>
+                                      c.codeUnitAt(0) >= 48 &&
+                                      c.codeUnitAt(0) <= 57,
+                                )
+                                .join();
+                            final cut = digits.length > 7
+                                ? digits.substring(0, 7)
+                                : digits;
+                            upd(
+                              (it) => it.copyWith(
+                                timeoutMs: int.tryParse(cut) ?? 0,
+                              ),
+                            );
+                          },
+                          highlightVars: false,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    spacing: 8,
+                    children: [
+                      const T(
+                        'Client certificate',
+                        size: 13,
+                        weight: FontWeight.w600,
+                      ),
+                      TlsEditor(
+                        config: r.tls,
+                        onChange: (t) => upd((it) => it.copyWith(tls: t)),
+                        inheritLabel: 'Inherit from folder / collection',
+                        baseDir: state.collection(tab.collectionPath)?.path,
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         );
       default:
         content = const SizedBox.shrink();

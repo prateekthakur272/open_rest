@@ -172,6 +172,34 @@ class Execution {
         : const Auth(mode: AuthMode.None);
   }
 
+  /// Client certificate for this request: the request, then the nearest folder, then the collection.
+  /// `none` stops the walk. Variables are expanded and relative paths resolve against the collection directory.
+  TlsConfig? effectiveTls() {
+    TlsConfig? pick() {
+      if (req.tls.mode != TlsMode.inherit) return req.tls;
+      for (final f in folders.reversed) {
+        if (f.config.tls.mode != TlsMode.inherit) return f.config.tls;
+      }
+      return col.config.tls;
+    }
+
+    final t = pick();
+    if (t == null || t.mode != TlsMode.custom) return null;
+    String path(String s) {
+      final v = interp(s).trim();
+      if (v.isEmpty) return '';
+      return File(v).isAbsolute ? v : '${col.path}${Platform.pathSeparator}$v';
+    }
+
+    return t.copyWith(
+      pfxPath: path(t.pfxPath),
+      certPath: path(t.certPath),
+      keyPath: path(t.keyPath),
+      caPath: path(t.caPath),
+      passphrase: interp(t.passphrase),
+    );
+  }
+
   ReqView initialView() {
     final body = switch (req.bodyMode) {
       BodyMode.Json => req.bodyJson,
@@ -323,6 +351,7 @@ class Execution {
       headers: [for (final e in headers.entries) (e.key, e.value)],
       body: body,
       timeoutMs: view.timeout,
+      tls: effectiveTls(),
     );
   }
 
@@ -352,6 +381,7 @@ class Execution {
         url: interp(a.tokenUrl),
         headers: [('Accept', 'application/json')],
         body: BodyForm(fields: fields),
+        tls: effectiveTls(),
       ),
       rc.settings,
     );
