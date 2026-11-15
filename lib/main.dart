@@ -47,7 +47,7 @@ Future<void> main() async {
     version: '1.0.0',
     vendor: 'Prateek Thakur',
     description: 'An open, file-based API client: requests, environments and workflows that live in plain folders.',
-    homepage: 'https://github.com/prateekthakur272/OpenRest',
+    homepage: 'https://github.com/prateekthakur272/open_rest',
     developerUrl: 'https://github.com/prateekthakur272',
   );
   final isMac = Platform.isMac;

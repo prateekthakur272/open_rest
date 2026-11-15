@@ -546,7 +546,6 @@ class _TopBar extends StatelessWidget {
                     ),
                   ),
                 ),
-                T('/', color: p.muted, size: 12),
               ],
               const Spacer(),
               EnvSelector(state: state, collection: col),
@@ -1118,6 +1117,7 @@ class _Welcome extends StatelessWidget {
               const SizedBox(height: 26),
               Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 spacing: 4,
                 children: [
                   for (final t in tips)
@@ -1126,7 +1126,7 @@ class _Welcome extends StatelessWidget {
                       spacing: 12,
                       children: [
                         SizedBox(
-                          width: 150,
+                          width: 160,
                           child: T(t.$1, mono: true, color: p.accent, size: 12),
                         ),
                         T(t.$2, color: p.muted, size: 12),
