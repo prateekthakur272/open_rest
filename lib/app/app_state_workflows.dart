@@ -308,33 +308,44 @@ extension AppStateWorkflows on AppState {
     }
   }
 
-  Future<void> startRunner(RequestTab tab) async {
+  /// Runs the chosen requests (or just [only]) for the configured number of iterations.
+  Future<void> startRunner(RequestTab tab, {List<RequestNode>? only}) async {
     final rs = tab.runner;
     if (rs == null) return;
     if (rs.running) return;
     final col = collection(tab.collectionPath);
     if (col == null) return;
+    final nodes = only ?? rs.chosen;
+    if (nodes.isEmpty) return;
     rs.results.clear();
     rs.cancelled = false;
     rs.running = true;
     rs.expanded = null;
+    rs.collapsed.clear();
+    rs.planned = nodes.length * rs.iters;
+    rs.startedAt = DateTime.now();
+    rs.finishedAt = null;
     final rc = runCtx(col);
-    final queue = <RequestNode>[
-      for (var i = 0; i < rs.iters; i++) ...rs.chosen,
-    ];
     final delay = int.tryParse(rs.delay) ?? 0;
     final stop = rs.stopOnFail;
     try {
-      await Runner.runAll(
-        rc,
-        queue,
-        stop,
-        delay,
-        () => rs.cancelled,
-        (n) => rs.current = n.name,
-        (it) => rs.results.add(it),
-      );
+      for (var i = 0; i < rs.iters; i++) {
+        final halted = await Runner.runAll(
+          rc,
+          nodes,
+          stop,
+          delay,
+          () => rs.cancelled,
+          (n) => rs.current = n.name,
+          (it) => rs.results.add(RunnerItem(it.node, it.result, iteration: i)),
+        );
+        if (halted) break;
+        if (delay > 0 && i < rs.iters - 1) {
+          await Future<void>.delayed(Duration(milliseconds: delay));
+        }
+      }
     } finally {
+      rs.finishedAt = DateTime.now();
       rs.running = false;
       rs.current = '';
     }

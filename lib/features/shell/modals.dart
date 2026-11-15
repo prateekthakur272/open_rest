@@ -8,6 +8,7 @@ import 'package:open_rest/features/dialogs/collection_dialogs.dart';
 import 'package:open_rest/features/dialogs/dialogs.dart';
 import 'package:open_rest/features/dialogs/env_dialogs.dart';
 import 'package:open_rest/features/dialogs/settings_dialogs.dart';
+import 'package:open_rest/features/dialogs/vars_dialog.dart';
 import 'package:open_rest/features/dialogs/transfer_dialogs.dart';
 import 'package:open_rest/features/onboarding/onboarding.dart';
 import 'package:open_rest/features/preferences/preferences.dart';

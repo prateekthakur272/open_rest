@@ -7,6 +7,7 @@ import 'package:open_rest/core/run/runner.dart';
 import 'package:open_rest/core/run/workflow_model.dart';
 import 'package:open_rest/core/run/workflow_tree.dart';
 import 'package:open_rest/core/run/workflow_run_models.dart';
+import 'package:open_rest/features/runner/runner_logic.dart' show ResultFilter;
 
 /// A list that notifies on every mutation.
 class StateList<E> extends ListBase<E> {
@@ -168,6 +169,7 @@ class RunnerSession extends SessionNotifier {
     order = StateList<RequestNode>(changed, requests);
     selected = StateMap<String, bool>(changed);
     results = StateList<RunnerItem>(changed);
+    collapsed = StateMap<int, bool>(changed);
     for (final r in requests) {
       selected._m[r.path] = true;
     }
@@ -178,6 +180,9 @@ class RunnerSession extends SessionNotifier {
   late final StateMap<String, bool> selected;
   late final StateList<RunnerItem> results;
 
+  /// Iteration groups collapsed in the results list.
+  late final StateMap<int, bool> collapsed;
+
   bool _running = false;
   String _current = '';
   bool _stopOnFail = false;
@@ -185,6 +190,44 @@ class RunnerSession extends SessionNotifier {
   String _iterations = '1';
   bool _cancelled = false;
   int? _expanded;
+  bool _settingsOpen = false;
+  ResultFilter _filter = ResultFilter.all;
+  int _planned = 0;
+  DateTime? _startedAt;
+  DateTime? _finishedAt;
+
+  /// Which results the list shows.
+  ResultFilter get filter => _filter;
+  set filter(ResultFilter v) {
+    _filter = v;
+    changed();
+  }
+
+  /// Number of requests the current run expects to execute.
+  int get planned => _planned;
+  set planned(int v) {
+    _planned = v;
+    changed();
+  }
+
+  DateTime? get startedAt => _startedAt;
+  set startedAt(DateTime? v) {
+    _startedAt = v;
+    changed();
+  }
+
+  DateTime? get finishedAt => _finishedAt;
+  set finishedAt(DateTime? v) {
+    _finishedAt = v;
+    changed();
+  }
+
+  /// Whether the settings section is expanded.
+  bool get settingsOpen => _settingsOpen;
+  set settingsOpen(bool v) {
+    _settingsOpen = v;
+    changed();
+  }
 
   bool get running => _running;
   set running(bool v) {

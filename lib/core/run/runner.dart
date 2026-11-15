@@ -583,7 +583,10 @@ class EnvOverrides {
 class RunnerItem {
   final RequestNode node;
   final ExecResult result;
-  const RunnerItem(this.node, this.result);
+
+  /// Zero-based iteration this request ran in.
+  final int iteration;
+  const RunnerItem(this.node, this.result, {this.iteration = 0});
 }
 
 /// Runs several requests in sequence.
@@ -596,7 +599,8 @@ class Runner {
   ];
 
   /// Runs requests sequentially; honours bru.runner.skipRequest / stopExecution / setNextRequest.
-  static Future<void> runAll(
+  /// Returns true when the run was halted (cancelled, stop requested, or stopped on failure).
+  static Future<bool> runAll(
     RunCtx rc,
     List<RequestNode> requests,
     bool stopOnFailure,
@@ -608,13 +612,13 @@ class Runner {
     var i = 0;
     var guard = 0;
     while (i < requests.length && guard++ < requests.length * 20 + 20) {
-      if (cancelled()) return;
+      if (cancelled()) return true;
       final node = requests[i];
       onStart(node);
       final r = await Execution(rc, node).run();
       onResult(RunnerItem(node, r));
       final failed = r.error != null || r.tests.any((t) => !t.passed);
-      if (r.stop || (stopOnFailure && failed)) return;
+      if (r.stop || (stopOnFailure && failed)) return true;
       if (r.nextRequest != null) {
         final idx = requests.indexWhere((q) => q.name == r.nextRequest);
         i = idx >= 0 ? idx : requests.length;
@@ -625,5 +629,6 @@ class Runner {
         await Future<void>.delayed(Duration(milliseconds: delayMs));
       }
     }
+    return false;
   }
 }
