@@ -11,6 +11,12 @@ description: |
   review well in pull requests and sit in git next to your code. Nothing is
   sent anywhere except the requests you run.
 
+  Work with more than plain HTTP. GraphQL requests get a schema browser with
+  one-click field insertion, operation names and readable error reporting.
+  WebSocket requests keep a live message log, saved messages and subprotocol
+  support, with the same variables, environments and auth as every other
+  request.
+
   Build workflows visually with loops, conditions and values passed from one
   step to the next. Import from Postman, Insomnia, Bruno, OpenAPI and cURL,
   and export back to the same formats.
@@ -21,19 +27,22 @@ description: |
 
 category: Developer Tools
 
-# Desktop app built with Kotlin and Compose Multiplatform.
+# Desktop app built with Flutter. macOS builds are universal (Apple Silicon and Intel).
 supported_os:
   - macos
+  - windows
+  - linux
 
 developer: Prateek Thakur
-website: https://github.com/prateekthakur272/OpenRest
-support_url: https://github.com/prateekthakur272/OpenRest/issues
+website: https://github.com/prateekthakur272/open_rest
+support_url: https://github.com/prateekthakur272/open_rest/issues
 
 tags:
   - api-client
   - rest
   - http
   - graphql
+  - websocket
   - postman-alternative
   - developer-tools
   - flutter
