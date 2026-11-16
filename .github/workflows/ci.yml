@@ -36,6 +36,18 @@ jobs:
 
       - run: flutter pub get
 
+      # flutter_js loads its QuickJS bridge as a native library. Under `flutter test` on Linux it looks for
+      # libquickjs_c_bridge_plugin.so on the library path, so point it at the copy shipped inside the package.
+      - name: Locate the QuickJS bridge library
+        run: |
+          lib=$(find "${PUB_CACHE:-$HOME/.pub-cache}" -path '*flutter_js-*/linux/shared/libquickjs_c_bridge_plugin.so' | head -n 1)
+          if [ -z "$lib" ]; then
+            echo "::error::libquickjs_c_bridge_plugin.so not found in the pub cache"
+            exit 1
+          fi
+          echo "QuickJS bridge: $lib"
+          echo "LIBQUICKJSC_TEST_PATH=$lib" >> "$GITHUB_ENV"
+
       - name: Analyze
         run: flutter analyze
 
