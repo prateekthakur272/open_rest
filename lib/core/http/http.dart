@@ -266,6 +266,9 @@ class HttpExecutor {
     return ctx;
   }
 
+  /// The pooled client for these settings and certificate, for protocols that upgrade the connection (WebSocket).
+  static HttpClient clientFor(AppSettings s, TlsConfig? tls) => _client(s, tls);
+
   static HttpClient _client(AppSettings s, TlsConfig? tls) {
     final key =
         '${s.followRedirects}|${s.sslVerify}|${s.proxyEnabled}|${s.proxyHost}|${s.proxyPort}|${_tlsKey(tls)}';

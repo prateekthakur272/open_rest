@@ -22,7 +22,7 @@ extension AppStateSidebar on AppState {
   void _dropTabs(String under) {
     final gone = tabs.where((t) => isUnder(t.filePath, under)).toList();
     for (final t in gone) {
-      t.cancelJob();
+      t.release();
     }
     tabs.removeWhere(gone.contains);
     if (activeTab == null) activeTabId = tabs.isEmpty ? null : tabs.last.id;
@@ -35,11 +35,14 @@ extension AppStateSidebar on AppState {
     String method,
     String url, {
     bool graphql = false,
+    bool ws = false,
   }) => guard(() {
     require(name.trim().isNotEmpty, () => 'Name required');
     final r = ApiRequest(
       name: name.trim(),
-      method: graphql ? 'POST' : method,
+      method: graphql ? 'POST' : (ws ? 'GET' : method),
+      kind: ws ? RequestKind.ws : RequestKind.http,
+      wsMessage: ws ? '{"hello": "world"}' : '',
       url: url.trim(),
       params: UrlSync.paramsFromUrl(url.trim(), const []),
       bodyMode: graphql ? BodyMode.Graphql : BodyMode.None,

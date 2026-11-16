@@ -30,6 +30,17 @@ import 'package:open_rest/utils/json.dart';
 import 'package:open_rest/utils/xml.dart';
 import 'package:path/path.dart' as p;
 
+/// Editor tabs of a WebSocket request: the handshake request, no body or scripts.
+const List<String> WS_TABS = [
+  'Message',
+  'Params',
+  'Headers',
+  'Auth',
+  'Protocols',
+  'Docs',
+  'Settings',
+];
+
 const List<String> REQ_TABS = [
   'Params',
   'Body',
@@ -88,7 +99,7 @@ class RequestView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _TitleBar(
+              RequestTitleBar(
                 key: ValueKey('title-${tab.id}'),
                 state: state,
                 tab: tab,
@@ -190,16 +201,17 @@ class _ResolvedBar extends StatelessWidget {
   }
 }
 
-class _TitleBar extends StatefulWidget {
-  const _TitleBar({super.key, required this.state, required this.tab});
+/// Breadcrumb + inline-rename title of a request tab.
+class RequestTitleBar extends StatefulWidget {
+  const RequestTitleBar({super.key, required this.state, required this.tab});
   final AppState state;
   final RequestTab tab;
 
   @override
-  State<_TitleBar> createState() => _TitleBarState();
+  State<RequestTitleBar> createState() => RequestTitleBarState();
 }
 
-class _TitleBarState extends State<_TitleBar> {
+class RequestTitleBarState extends State<RequestTitleBar> {
   bool renaming = false;
 
   @override
@@ -393,10 +405,22 @@ class _UrlBar extends StatelessWidget {
 
 /// Request editor tabs (Params / Body / Headers / ...).
 class RequestPane extends StatelessWidget {
-  const RequestPane({super.key, required this.state, required this.tab});
+  const RequestPane({
+    super.key,
+    required this.state,
+    required this.tab,
+    this.tabs = REQ_TABS,
+    this.custom = const {},
+  });
 
   final AppState state;
   final RequestTab tab;
+
+  /// The editor tabs to offer; a WebSocket request uses [WS_TABS].
+  final List<String> tabs;
+
+  /// Content of tabs that are not built in (keyed by tab name), e.g. the WebSocket message editor.
+  final Map<String, Widget> custom;
 
   String? _badge(ApiRequest r, String t) {
     String? n(int v) => v > 0 ? '$v' : null;
@@ -423,6 +447,10 @@ class RequestPane extends StatelessWidget {
         return r.tests.trim().isNotEmpty ? '●' : null;
       case 'Docs':
         return r.docs.trim().isNotEmpty ? '●' : null;
+      case 'Protocols':
+        return r.wsProtocols.trim().isNotEmpty ? '●' : null;
+      case 'Message':
+        return r.wsMessage.trim().isNotEmpty ? '●' : null;
       default:
         return null;
     }
@@ -433,8 +461,10 @@ class RequestPane extends StatelessWidget {
     final r = tab.draft;
     final pal = context.pal;
     void upd(ApiRequest Function(ApiRequest) f) => state.update(tab, f);
+    // A tab name this editor does not offer (e.g. restored from another request type) falls back to the first.
+    final cur = tabs.contains(tab.reqTab) ? tab.reqTab : tabs.first;
     Widget content;
-    switch (tab.reqTab) {
+    switch (cur) {
       case 'Params':
         content = ScrollBox(
           content: [
@@ -707,6 +737,36 @@ class RequestPane extends StatelessWidget {
             placeholder: 'Document this request…',
           ),
         );
+      case 'Protocols':
+        content = ScrollBox(
+          content: [
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: 8,
+                  children: [
+                    const SectionLabel('SUBPROTOCOLS'),
+                    Field(
+                      key: const ValueKey('ws-protocols'),
+                      value: r.wsProtocols,
+                      onChange: (v) => upd((it) => it.copyWith(wsProtocols: v)),
+                      placeholder: 'graphql-transport-ws, mqtt',
+                      mono: true,
+                    ),
+                    T(
+                      'Comma-separated list sent in Sec-WebSocket-Protocol; the server picks one.',
+                      color: pal.muted,
+                      size: 11,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
       case 'Settings':
         content = ScrollBox(
           content: [
@@ -778,7 +838,7 @@ class RequestPane extends StatelessWidget {
           ],
         );
       default:
-        content = const SizedBox.shrink();
+        content = custom[cur] ?? const SizedBox.shrink();
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -786,8 +846,8 @@ class RequestPane extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6),
           child: Tabs(
-            items: REQ_TABS,
-            selected: tab.reqTab,
+            items: tabs,
+            selected: cur,
             onSelect: (v) => tab.reqTab = v,
             badge: (t) => _badge(r, t),
           ),

@@ -1,5 +1,6 @@
 // ignore_for_file: constant_identifier_names, non_constant_identifier_names, deprecated_member_use
 import 'package:flutter/widgets.dart';
+import 'package:open_rest/components/segmented.dart';
 import 'package:open_rest/app/app_state.dart';
 import 'package:open_rest/components/buttons.dart';
 import 'package:open_rest/components/field.dart';
@@ -105,62 +106,6 @@ class _Toggle extends StatelessWidget {
             shape: BoxShape.circle,
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _Segmented extends StatelessWidget {
-  const _Segmented({
-    required this.options,
-    required this.selected,
-    required this.onSelect,
-  });
-  final List<String> options;
-  final String selected;
-  final ValueChanged<String> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.pal;
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: p.bg,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      // Borders are painted over the content so they take no layout space.
-      foregroundDecoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: p.border, width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        spacing: 2,
-        children: [
-          for (final o in options)
-            Clickable(
-              onClick: () => onSelect(o),
-              cursor: SystemMouseCursors.click,
-              borderRadius: BorderRadius.circular(6),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: o == selected ? p.accent : const Color(0x00000000),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: T(
-                  o,
-                  color: o == selected ? const Color(0xFF000000) : p.text,
-                  size: 12,
-                  weight: o == selected ? FontWeight.w600 : null,
-                ),
-              ),
-            ),
-        ],
       ),
     );
   }
@@ -286,7 +231,7 @@ class _PreferencesDialogState extends State<PreferencesDialog> {
       _Pref(
         _Section.Appearance,
         'Theme',
-        _Segmented(
+        Segmented(
           options: [for (final m in ThemeMode.values) m.label],
           selected: s.theme.label,
           onSelect: (l) => set(
@@ -340,7 +285,7 @@ class _PreferencesDialogState extends State<PreferencesDialog> {
       _Pref(
         _Section.Appearance,
         'Request layout',
-        _Segmented(
+        Segmented(
           options: const ['Stacked', 'Side by side'],
           selected: s.verticalLayout ? 'Stacked' : 'Side by side',
           onSelect: (v) => set(s.copyWith(verticalLayout: v == 'Stacked')),

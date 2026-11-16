@@ -261,6 +261,14 @@ const HTTP_METHODS = [
   'TRACE',
 ];
 
+/// What a saved request talks: a plain HTTP exchange or a long-lived WebSocket connection.
+enum RequestKind {
+  http,
+  ws;
+
+  static RequestKind of(String? v) => v == 'ws' ? ws : http;
+}
+
 /// A saved request.
 class ApiRequest {
   final String name;
@@ -277,6 +285,12 @@ class ApiRequest {
   final String bodyGraphql;
   final String bodyGraphqlVars;
   final String operationName;
+  final RequestKind kind;
+
+  /// WebSocket: comma-separated subprotocols, the message in the composer and saved messages.
+  final String wsProtocols;
+  final String wsMessage;
+  final List<KV> wsMessages;
   final String bodyFile;
   final List<KV> formUrlEncoded;
   final List<KV> multipart;
@@ -307,6 +321,10 @@ class ApiRequest {
     this.bodyGraphql = '',
     this.bodyGraphqlVars = '',
     this.operationName = '',
+    this.kind = RequestKind.http,
+    this.wsProtocols = '',
+    this.wsMessage = '',
+    this.wsMessages = const [],
     this.bodyFile = '',
     this.formUrlEncoded = const [],
     this.multipart = const [],
@@ -324,7 +342,9 @@ class ApiRequest {
   });
 
   /// Label shown in lists and tabs: `GQL` for GraphQL bodies, otherwise the HTTP method.
-  String get displayMethod => bodyMode == BodyMode.Graphql ? 'GQL' : method;
+  String get displayMethod => kind == RequestKind.ws
+      ? 'WS'
+      : (bodyMode == BodyMode.Graphql ? 'GQL' : method);
 
   ApiRequest copyWith({
     String? name,
@@ -341,6 +361,10 @@ class ApiRequest {
     String? bodyGraphql,
     String? bodyGraphqlVars,
     String? operationName,
+    RequestKind? kind,
+    String? wsProtocols,
+    String? wsMessage,
+    List<KV>? wsMessages,
     String? bodyFile,
     List<KV>? formUrlEncoded,
     List<KV>? multipart,
@@ -370,6 +394,10 @@ class ApiRequest {
     bodyGraphql: bodyGraphql ?? this.bodyGraphql,
     bodyGraphqlVars: bodyGraphqlVars ?? this.bodyGraphqlVars,
     operationName: operationName ?? this.operationName,
+    kind: kind ?? this.kind,
+    wsProtocols: wsProtocols ?? this.wsProtocols,
+    wsMessage: wsMessage ?? this.wsMessage,
+    wsMessages: wsMessages ?? this.wsMessages,
     bodyFile: bodyFile ?? this.bodyFile,
     formUrlEncoded: formUrlEncoded ?? this.formUrlEncoded,
     multipart: multipart ?? this.multipart,
@@ -403,6 +431,10 @@ class ApiRequest {
       other.bodyGraphql == bodyGraphql &&
       other.bodyGraphqlVars == bodyGraphqlVars &&
       other.operationName == operationName &&
+      other.kind == kind &&
+      other.wsProtocols == wsProtocols &&
+      other.wsMessage == wsMessage &&
+      listEquals(other.wsMessages, wsMessages) &&
       other.bodyFile == bodyFile &&
       listEquals(other.formUrlEncoded, formUrlEncoded) &&
       listEquals(other.multipart, multipart) &&
@@ -434,6 +466,10 @@ class ApiRequest {
     bodyGraphql,
     bodyGraphqlVars,
     operationName,
+    kind,
+    wsProtocols,
+    wsMessage,
+    Object.hashAll(wsMessages),
     bodyFile,
     Object.hashAll(formUrlEncoded),
     Object.hashAll(multipart),

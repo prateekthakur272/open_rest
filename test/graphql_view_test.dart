@@ -160,7 +160,7 @@ void main() {
   });
 
   testWidgets(
-    'new request dialog: type cards pick GraphQL, others are disabled',
+    'new request dialog: type cards pick GraphQL, gRPC is not available yet',
     (t) async {
       useTempHome();
       t.view.physicalSize = const Size(1400, 900);
@@ -182,11 +182,11 @@ void main() {
       for (final n in ['HTTP', 'GraphQL', 'WebSocket', 'gRPC']) {
         expect(find.text(n), findsWidgets);
       }
-      expect(find.text('Soon'), findsNWidgets(2));
+      expect(find.text('Soon'), findsOneWidget);
       expect(find.text('GET'), findsOneWidget);
 
       // A disabled card does nothing.
-      await t.tap(find.byKey(const ValueKey('new-type-websocket')));
+      await t.tap(find.byKey(const ValueKey('new-type-grpc')));
       await t.pump();
       expect(find.text('GET'), findsOneWidget);
 

@@ -25,6 +25,7 @@ import 'package:open_rest/features/shell/title_menus.dart';
 import 'package:open_rest/features/shell/window_chrome.dart';
 import 'package:open_rest/features/sidebar/sidebar.dart';
 import 'package:open_rest/features/sidebar/tree.dart' show MiniSpinner;
+import 'package:open_rest/features/websocket/ws_view.dart';
 import 'package:open_rest/features/workflow/workflow_view.dart';
 import 'package:open_rest/platform/platform.dart';
 import 'package:open_rest/theme/icons.dart';
@@ -340,7 +341,9 @@ class _Body extends StatelessWidget {
         } else if (tab?.runner != null) {
           content = RunnerView(key: ValueKey(tab!.id), state: state, tab: tab);
         } else if (tab != null) {
-          content = RequestView(key: ValueKey(tab.id), state: state, tab: tab);
+          content = tab.ws != null
+              ? WebSocketView(key: ValueKey(tab.id), state: state, tab: tab)
+              : RequestView(key: ValueKey(tab.id), state: state, tab: tab);
         } else {
           content = _Welcome(state: state);
         }

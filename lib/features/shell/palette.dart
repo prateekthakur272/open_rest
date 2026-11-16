@@ -153,6 +153,14 @@ class _PaletteState extends State<Palette> {
           graphql: true,
         ),
       );
+      act(
+        'New WebSocket request',
+        () => state.modal = ModalNewRequest(
+          collection: col.path,
+          dir: col.path,
+          ws: true,
+        ),
+      );
       act('New folder', () => state.promptNewFolder(col.path, col.path));
       act(
         'Run collection: ${col.name}',

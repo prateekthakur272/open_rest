@@ -627,7 +627,11 @@ class Runner {
 
   static List<RequestNode> flatten(List<Node> nodes) => [
     for (final n in nodes)
-      if (n is RequestNode) n else ...flatten((n as FolderNode).children),
+      if (n is RequestNode)
+        // WebSocket requests are connections, not exchanges: the runner skips them.
+        ...(n.request.kind == RequestKind.http ? [n] : const <RequestNode>[])
+      else
+        ...flatten((n as FolderNode).children),
   ];
 
   /// Runs requests sequentially; honours bru.runner.skipRequest / stopExecution / setNextRequest.

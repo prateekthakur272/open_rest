@@ -593,9 +593,11 @@ class OrYaml {
         ].any((it) => it.isNotEmpty) ||
         r.formUrlEncoded.isNotEmpty ||
         r.multipart.isNotEmpty;
+    final isWs = r.kind == RequestKind.ws;
     return Yml.m([
       ('name', r.name),
       ('seq', r.seq),
+      ('kind', isWs ? 'ws' : null),
       ('method', r.method),
       ('url', r.url),
       (
@@ -620,6 +622,16 @@ class OrYaml {
                 ('file', r.bodyFile),
               ]),
       ),
+      (
+        'ws',
+        isWs
+            ? Yml.m([
+                ('protocols', r.wsProtocols),
+                ('message', r.wsMessage),
+                ('messages', kvOut(r.wsMessages)),
+              ])
+            : null,
+      ),
       ('auth', _authOut(r.auth, AuthMode.Inherit)),
       ('vars', Yml.m([('pre', kvOut(r.preVars)), ('post', kvOut(r.postVars))])),
       ('assertions', kvOut(r.assertions)),
@@ -643,6 +655,7 @@ class OrYaml {
     final vars = _map(m['vars']);
     final scripts = _map(m['scripts']);
     final st = _map(m['settings']);
+    final ws = _map(m['ws']);
     final seq = m['seq'];
     final timeout = st?['timeout'];
     return ApiRequest(
@@ -660,6 +673,10 @@ class OrYaml {
       bodyGraphql: _txt(body?['graphql']),
       bodyGraphqlVars: _txt(body?['graphqlVariables']),
       operationName: _s(body?['graphqlOperation']),
+      kind: RequestKind.of(_s(m['kind'])),
+      wsProtocols: _s(ws?['protocols']),
+      wsMessage: _txt(ws?['message']),
+      wsMessages: kvIn(ws?['messages']),
       bodyFile: _s(body?['file']),
       formUrlEncoded: kvIn(body?['form']),
       multipart: kvIn(body?['multipart']),

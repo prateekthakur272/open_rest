@@ -47,8 +47,9 @@ class _NewRequestDialogState extends State<NewRequestDialog> with _AutoFocus {
   String method = 'GET';
   String url = '';
   late bool graphql = widget.m.graphql;
+  late bool ws = widget.m.ws;
 
-  bool get isCurl => url.trimLeft().startsWith('curl ');
+  bool get isCurl => !ws && url.trimLeft().startsWith('curl ');
 
   void ok() {
     final state = widget.state;
@@ -63,6 +64,7 @@ class _NewRequestDialogState extends State<NewRequestDialog> with _AutoFocus {
         method,
         url,
         graphql: graphql,
+        ws: ws,
       );
     }
   }
@@ -95,8 +97,11 @@ class _NewRequestDialogState extends State<NewRequestDialog> with _AutoFocus {
                 title: 'HTTP',
                 caption: 'REST & web APIs',
                 color: context.pal.ok,
-                selected: !graphql,
-                onClick: () => setState(() => graphql = false),
+                selected: !graphql && !ws,
+                onClick: () => setState(() {
+                  graphql = false;
+                  ws = false;
+                }),
               ),
             ),
             Expanded(
@@ -107,7 +112,10 @@ class _NewRequestDialogState extends State<NewRequestDialog> with _AutoFocus {
                 caption: 'Queries & schema',
                 color: methodColor('GQL', context.pal),
                 selected: graphql,
-                onClick: () => setState(() => graphql = true),
+                onClick: () => setState(() {
+                  graphql = true;
+                  ws = false;
+                }),
               ),
             ),
             Expanded(
@@ -116,9 +124,12 @@ class _NewRequestDialogState extends State<NewRequestDialog> with _AutoFocus {
                 icon: Ic.websocket,
                 title: 'WebSocket',
                 caption: 'Live messages',
-                color: context.pal.syntaxKeyword,
-                selected: false,
-                soon: true,
+                color: methodColor('WS', context.pal),
+                selected: ws,
+                onClick: () => setState(() {
+                  ws = true;
+                  graphql = false;
+                }),
               ),
             ),
             Expanded(
@@ -140,19 +151,21 @@ class _NewRequestDialogState extends State<NewRequestDialog> with _AutoFocus {
           child: Field(
             value: name,
             onChange: (v) => setState(() => name = v),
-            placeholder: graphql ? 'Countries' : 'Get users',
+            placeholder: graphql
+                ? 'Countries'
+                : (ws ? 'Echo server' : 'Get users'),
             focusRequester: fr,
             highlightVars: false,
           ),
         ),
-        const SectionLabel('URL  (or paste a cURL command)'),
+        SectionLabel(ws ? 'URL' : 'URL  (or paste a cURL command)'),
         Row(
           spacing: 8,
           children: [
-            if (graphql)
+            if (graphql || ws)
               T(
-                'GQL',
-                color: methodColor('GQL', context.pal),
+                ws ? 'WS' : 'GQL',
+                color: methodColor(ws ? 'WS' : 'GQL', context.pal),
                 weight: FontWeight.w700,
                 size: 12,
               )
@@ -168,9 +181,11 @@ class _NewRequestDialogState extends State<NewRequestDialog> with _AutoFocus {
               child: Field(
                 value: url,
                 onChange: (v) => setState(() => url = v),
-                placeholder: graphql
-                    ? 'https://api.example.com/graphql'
-                    : 'https://api.example.com/users',
+                placeholder: ws
+                    ? 'wss://echo.websocket.events'
+                    : (graphql
+                          ? 'https://api.example.com/graphql'
+                          : 'https://api.example.com/users'),
                 mono: true,
                 onEnter: () {
                   if (isCurl || name.trim().isNotEmpty) ok();

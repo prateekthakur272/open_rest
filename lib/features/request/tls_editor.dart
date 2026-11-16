@@ -1,9 +1,9 @@
 import 'dart:io' show File;
 
 import 'package:flutter/widgets.dart';
+import 'package:open_rest/components/segmented.dart';
 import 'package:open_rest/components/buttons.dart';
 import 'package:open_rest/components/field.dart';
-import 'package:open_rest/components/modifiers.dart';
 import 'package:open_rest/components/text.dart';
 import 'package:open_rest/core/model/model.dart';
 import 'package:open_rest/platform/platform.dart';
@@ -123,7 +123,11 @@ class TlsEditor extends StatelessWidget {
       children: [
         Align(
           alignment: Alignment.centerLeft,
-          child: _Seg(options: options, selected: selected, onSelect: select),
+          child: Segmented(
+            options: options,
+            selected: selected,
+            onSelect: select,
+          ),
         ),
         if (c.mode == TlsMode.inherit)
           T(
@@ -219,62 +223,6 @@ class TlsEditor extends StatelessWidget {
       ok ? 'File found' : 'File not found',
       color: ok ? pal.ok : pal.err,
       size: 11,
-    );
-  }
-}
-
-/// Small segmented selector with painted borders.
-class _Seg extends StatelessWidget {
-  const _Seg({
-    required this.options,
-    required this.selected,
-    required this.onSelect,
-  });
-  final List<String> options;
-  final String selected;
-  final ValueChanged<String> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = context.pal;
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: p.bg,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      foregroundDecoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: p.border, width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        spacing: 2,
-        children: [
-          for (final o in options)
-            Clickable(
-              onClick: () => onSelect(o),
-              cursor: SystemMouseCursors.click,
-              borderRadius: BorderRadius.circular(6),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: o == selected ? p.accent : const Color(0x00000000),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: T(
-                  o,
-                  color: o == selected ? const Color(0xFF000000) : p.text,
-                  size: 12,
-                  weight: o == selected ? FontWeight.w600 : null,
-                ),
-              ),
-            ),
-        ],
-      ),
     );
   }
 }

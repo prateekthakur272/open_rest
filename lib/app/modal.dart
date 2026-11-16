@@ -86,6 +86,7 @@ class ModalNewRequest extends Modal {
     required this.collection,
     required this.dir,
     this.graphql = false,
+    this.ws = false,
   });
   final String collection;
   final String dir;
@@ -93,21 +94,30 @@ class ModalNewRequest extends Modal {
   /// Start on the GraphQL request type.
   final bool graphql;
 
-  ModalNewRequest copyWith({String? collection, String? dir, bool? graphql}) =>
-      ModalNewRequest(
-        collection: collection ?? this.collection,
-        dir: dir ?? this.dir,
-        graphql: graphql ?? this.graphql,
-      );
+  /// Start on the WebSocket request type.
+  final bool ws;
+
+  ModalNewRequest copyWith({
+    String? collection,
+    String? dir,
+    bool? graphql,
+    bool? ws,
+  }) => ModalNewRequest(
+    collection: collection ?? this.collection,
+    dir: dir ?? this.dir,
+    graphql: graphql ?? this.graphql,
+    ws: ws ?? this.ws,
+  );
 
   @override
   bool operator ==(Object other) =>
       other is ModalNewRequest &&
       other.collection == collection &&
       other.dir == dir &&
-      other.graphql == graphql;
+      other.graphql == graphql &&
+      other.ws == ws;
   @override
-  int get hashCode => Object.hash(collection, dir, graphql);
+  int get hashCode => Object.hash(collection, dir, graphql, ws);
 }
 
 /// New collection form.

@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'dart:collection';
+import 'dart:convert';
+import 'dart:typed_data';
 import 'dart:ui' show Rect, VoidCallback;
 
 import 'package:flutter/foundation.dart' show ChangeNotifier;
@@ -8,6 +11,7 @@ import 'package:open_rest/core/run/runner.dart';
 import 'package:open_rest/core/run/workflow_model.dart';
 import 'package:open_rest/core/run/workflow_tree.dart';
 import 'package:open_rest/core/run/workflow_run_models.dart';
+import 'package:open_rest/core/ws/ws_client.dart';
 import 'package:open_rest/features/dialogs/node_settings_controller.dart';
 import 'package:open_rest/features/dialogs/node_settings_logic.dart';
 import 'package:open_rest/features/runner/runner_logic.dart' show ResultFilter;
@@ -436,6 +440,229 @@ class CollectionSession extends SessionNotifier {
   bool get dirty => controller.dirty;
 }
 
+/// Direction of a WebSocket log entry; `info` entries are connection events (opened, closed, errors).
+enum WsDir { sent, received, info }
+
+/// One entry of a WebSocket message log.
+class WsMessage {
+  WsMessage(this.dir, {this.text = '', this.bytes, this.error = false})
+    : time = DateTime.now();
+
+  final WsDir dir;
+  final DateTime time;
+
+  /// Text of a text message, or the description of an info entry.
+  final String text;
+
+  /// Payload of a binary message.
+  final Uint8List? bytes;
+
+  /// An info entry that reports a failure.
+  final bool error;
+
+  bool get isBinary => bytes != null;
+  int get size => bytes?.length ?? utf8.encode(text).length;
+
+  /// Hex dump of the first bytes of a binary message.
+  String get hex {
+    final b = bytes;
+    if (b == null) return '';
+    final n = b.length < 256 ? b.length : 256;
+    final sb = StringBuffer();
+    for (var i = 0; i < n; i++) {
+      sb.write(b[i].toRadixString(16).padLeft(2, '0'));
+      sb.write(i % 16 == 15 ? '\n' : ' ');
+    }
+    if (b.length > n) sb.write('…');
+    return sb.toString().trimRight();
+  }
+}
+
+enum WsStatus { disconnected, connecting, open, closing }
+
+/// A WebSocket connection of a request tab: its state and the message log.
+class WebSocketSession extends SessionNotifier {
+  WebSocketSession() {
+    messages = StateList<WsMessage>(changed);
+  }
+
+  /// Most entries kept in the log; the oldest are dropped beyond this.
+  static const int maxMessages = 2000;
+
+  late final StateList<WsMessage> messages;
+  WsStatus _status = WsStatus.disconnected;
+  String? _protocol;
+  DateTime? _openedAt;
+  String _filter = 'All';
+  WsConnection? _conn;
+  StreamSubscription<dynamic>? _sub;
+
+  /// Bumped on every connect / disconnect so events of a stale connection are ignored.
+  int _gen = 0;
+
+  WsStatus get status => _status;
+  bool get isOpen => _status == WsStatus.open;
+  bool get busy =>
+      _status == WsStatus.connecting || _status == WsStatus.closing;
+  String? get protocol => _protocol;
+  DateTime? get openedAt => _openedAt;
+
+  /// Which log entries show: `All`, `Sent` or `Received`.
+  String get filter => _filter;
+  set filter(String v) {
+    _filter = v;
+    changed();
+  }
+
+  int get sentCount => messages.where((m) => m.dir == WsDir.sent).length;
+  int get receivedCount =>
+      messages.where((m) => m.dir == WsDir.received).length;
+
+  void _setStatus(WsStatus v) {
+    _status = v;
+    changed();
+  }
+
+  void _log(WsMessage m) {
+    messages.add(m);
+    while (messages.length > maxMessages) {
+      messages.removeAt(0);
+    }
+  }
+
+  /// Opens the connection; logs the outcome. Does nothing when already connected or connecting.
+  Future<void> connect(WsTarget target, AppSettings settings) async {
+    if (_status != WsStatus.disconnected) return;
+    final gen = ++_gen;
+    _setStatus(WsStatus.connecting);
+    _log(WsMessage(WsDir.info, text: 'Connecting to ${toWsUrl(target.url)}…'));
+    try {
+      final c = await WsConnection.connect(target, settings);
+      if (gen != _gen) {
+        unawaited(c.close(1001));
+        return;
+      }
+      _conn = c;
+      _protocol = c.protocol;
+      _openedAt = DateTime.now();
+      _log(
+        WsMessage(
+          WsDir.info,
+          text: c.protocol == null || c.protocol!.isEmpty
+              ? 'Connected'
+              : 'Connected (subprotocol ${c.protocol})',
+        ),
+      );
+      _sub = c.messages.listen(
+        (d) {
+          if (gen != _gen) return;
+          _log(
+            d is String
+                ? WsMessage(WsDir.received, text: d)
+                : WsMessage(
+                    WsDir.received,
+                    bytes: d is Uint8List
+                        ? d
+                        : Uint8List.fromList(d as List<int>),
+                  ),
+          );
+        },
+        onError: (Object e) {
+          if (gen != _gen) return;
+          _log(WsMessage(WsDir.info, text: '$e', error: true));
+        },
+        onDone: () {
+          if (gen != _gen) return;
+          final code = c.closeCode, reason = c.closeReason;
+          _log(
+            WsMessage(
+              WsDir.info,
+              text: code == null
+                  ? 'Connection closed'
+                  : 'Closed with code $code${reason == null || reason.isEmpty ? '' : ' ($reason)'}',
+              error: code != null && code != 1000 && code != 1001,
+            ),
+          );
+          _drop();
+        },
+      );
+      _setStatus(WsStatus.open);
+    } on WsConnectException catch (e) {
+      if (gen != _gen) return;
+      _log(WsMessage(WsDir.info, text: e.message, error: true));
+      _drop();
+    } catch (e) {
+      if (gen != _gen) return;
+      _log(WsMessage(WsDir.info, text: '$e', error: true));
+      _drop();
+    }
+  }
+
+  void _drop() {
+    _sub?.cancel();
+    _sub = null;
+    _conn = null;
+    _protocol = null;
+    _openedAt = null;
+    _setStatus(WsStatus.disconnected);
+  }
+
+  /// Sends a text message; false when not connected.
+  bool send(String text) {
+    final c = _conn;
+    if (c == null || _status != WsStatus.open) return false;
+    try {
+      c.sendText(text);
+    } catch (e) {
+      _log(WsMessage(WsDir.info, text: 'Send failed: $e', error: true));
+      return false;
+    }
+    _log(WsMessage(WsDir.sent, text: text));
+    return true;
+  }
+
+  /// Closes the connection normally; safe to call when not connected.
+  Future<void> disconnect() async {
+    final c = _conn;
+    if (c == null) {
+      // Abandon a connect that is still in flight.
+      if (_status == WsStatus.connecting) {
+        _gen++;
+        _log(WsMessage(WsDir.info, text: 'Cancelled'));
+        _drop();
+      }
+      return;
+    }
+    final gen = _gen;
+    _setStatus(WsStatus.closing);
+    try {
+      await c.close();
+    } catch (_) {}
+    if (gen != _gen) return;
+    _gen++;
+    _log(WsMessage(WsDir.info, text: 'Disconnected'));
+    _drop();
+  }
+
+  /// Logs a failure that happened before a connection could be attempted.
+  void fail(String message) =>
+      _log(WsMessage(WsDir.info, text: message, error: true));
+
+  void clear() => messages.clear();
+
+  @override
+  void dispose() {
+    _gen++;
+    final c = _conn;
+    _conn = null;
+    // Close with a code and let the stream finish on its own: cancelling the subscription would drop the socket
+    // before the close frame is sent. Its events are ignored because the generation moved on.
+    if (c != null) unawaited(c.close(1001).catchError((_) {}));
+    _sub = null;
+    super.dispose();
+  }
+}
+
 /// Editable state of a request tab.
 class RequestTab extends SessionNotifier {
   RequestTab({
@@ -446,12 +673,14 @@ class RequestTab extends SessionNotifier {
     this.runner,
     this.workflow,
     this.collection,
+    this.ws,
   }) : _draft = req,
        _saved = req {
     responses = StateList<ExecResult>(changed);
     runner?.onChange = changed;
     workflow?.onChange = changed;
     collection?.onChange = changed;
+    ws?.onChange = changed;
   }
 
   final int id;
@@ -459,6 +688,9 @@ class RequestTab extends SessionNotifier {
   final RunnerSession? runner;
   final WorkflowSession? workflow;
   final CollectionSession? collection;
+
+  /// The WebSocket connection of a WebSocket request (null for HTTP requests).
+  final WebSocketSession? ws;
 
   bool get isRequest =>
       runner == null && workflow == null && collection == null;
@@ -600,6 +832,12 @@ class RequestTab extends SessionNotifier {
   /// Abandons the in-flight send.
   void cancelJob() {
     sendGen++;
+  }
+
+  /// Frees what the tab holds (in-flight send, open connection); call when it is closed.
+  void release() {
+    cancelJob();
+    ws?.dispose();
   }
 
   void push(ExecResult r) {

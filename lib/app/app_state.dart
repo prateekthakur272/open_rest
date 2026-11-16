@@ -11,6 +11,7 @@ import 'package:open_rest/core/logging/log.dart';
 import 'package:open_rest/core/model/model.dart';
 import 'package:open_rest/core/run/runner.dart';
 import 'package:open_rest/core/storage/storage.dart';
+import 'package:open_rest/core/ws/ws_client.dart';
 import 'package:open_rest/features/dialogs/node_settings_controller.dart';
 import 'package:open_rest/features/dialogs/node_settings_logic.dart';
 import 'package:open_rest/platform/platform.dart';
@@ -489,9 +490,18 @@ class AppState extends ChangeNotifier {
       runner: runner,
       workflow: workflow,
       collection: collection,
+      ws:
+          runner == null &&
+              workflow == null &&
+              collection == null &&
+              req.kind == RequestKind.ws
+          ? WebSocketSession()
+          : null,
     );
     // A GraphQL request is all about its query: open on the Body tab instead of Params.
     if (t.isRequest && req.bodyMode == BodyMode.Graphql) t.reqTab = 'Body';
+    // A WebSocket request opens on its message editor.
+    if (t.ws != null) t.reqTab = 'Message';
     t.onChange = notifyListeners;
     return t;
   }
@@ -522,6 +532,9 @@ class AppState extends ChangeNotifier {
   });
 
   void closeCollection(String path) {
+    for (final t in tabs.where((t) => t.collectionPath == path)) {
+      t.release();
+    }
     tabs.removeWhere((t) => t.collectionPath == path);
     if (activeTab == null) activeTabId = tabs.isEmpty ? null : tabs.last.id;
     collections = collections.where((c) => c.path != path).toList();
@@ -654,7 +667,7 @@ class AppState extends ChangeNotifier {
       );
       return;
     }
-    t.cancelJob();
+    t.release();
     final idx = tabs.indexOf(t);
     tabs.remove(t);
     if (activeTabId == id) {
@@ -689,7 +702,65 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// Opens the WebSocket of [tab] with its resolved URL, headers and auth.
+  Future<void> connectWs(RequestTab tab) async {
+    final ws = tab.ws;
+    final col = collection(tab.collectionPath);
+    if (ws == null || col == null || ws.status != WsStatus.disconnected) return;
+    if (settings.autoSave && tab.dirty) save(tab);
+    final d = tab.draft;
+    WsTarget target;
+    try {
+      final ex = Execution(
+        runCtx(col),
+        RequestNode(
+          path: tab.filePath,
+          name: d.name,
+          request: d.copyWith(method: 'GET', bodyMode: BodyMode.None),
+        ),
+      );
+      final prepared = await ex.prepare();
+      target = WsTarget(
+        url: prepared.url,
+        headers: prepared.headers,
+        protocols: parseProtocols(ex.interp(d.wsProtocols)),
+        tls: prepared.tls,
+        timeoutMs: prepared.timeoutMs,
+      );
+    } on FormatException {
+      ws.fail('Invalid URL: use ws://host/path or wss://host/path');
+      return;
+    } catch (e) {
+      ws.fail(errorText(e));
+      return;
+    }
+    await ws.connect(target, settings);
+  }
+
+  /// Sends the composer message of [tab] over its open connection.
+  bool sendWs(RequestTab tab) {
+    final ws = tab.ws;
+    final col = collection(tab.collectionPath);
+    if (ws == null || col == null || !ws.isOpen) return false;
+    final d = tab.draft;
+    final text = Execution(
+      runCtx(col),
+      RequestNode(path: tab.filePath, name: d.name, request: d),
+    ).interp(d.wsMessage);
+    if (text.isEmpty) return false;
+    return ws.send(text);
+  }
+
   Future<void> send(RequestTab tab) async {
+    if (tab.ws != null) {
+      // Enter in the URL bar / the send shortcut: connect, or send when already connected.
+      if (tab.ws!.isOpen) {
+        sendWs(tab);
+      } else {
+        await connectWs(tab);
+      }
+      return;
+    }
     if (tab.sending || !tab.isRequest) return;
     final col = collection(tab.collectionPath);
     if (col == null) return;
