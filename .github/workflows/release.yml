@@ -205,11 +205,13 @@ jobs:
           path: dist
           merge-multiple: true
 
-      - name: Checksums
+      - name: Flatten and checksum
         working-directory: dist
         run: |
+          find . -mindepth 2 -type f -exec mv {} . \;
+          find . -mindepth 1 -type d -empty -delete
           ls -l
-          sha256sum * > SHA256SUMS.txt
+          sha256sum -- * > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - uses: softprops/action-gh-release@v2
