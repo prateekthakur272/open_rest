@@ -1,0 +1,39 @@
+# OpenRest — marketplace listing.
+# Read by the marketplace from the default branch of this repo.
+# See the marketplace's sample/.marketplace/app-info.yaml for every field.
+
+name: OpenRest
+tagline: An open, file-based API client for the desktop.
+
+description: |
+  OpenRest is an API client where requests, environments and workflows live
+  in plain folders you own. Collections are YAML files that diff cleanly,
+  review well in pull requests and sit in git next to your code. Nothing is
+  sent anywhere except the requests you run.
+
+  Build workflows visually with loops, conditions and values passed from one
+  step to the next. Import from Postman, Insomnia, Bruno, OpenAPI and cURL,
+  and export back to the same formats.
+
+  Fast and keyboard friendly, with a command palette, variable autocomplete
+  in every field, a collection runner, scripting and tests, and code
+  generation for cURL, JavaScript, Python, Kotlin, Go and more.
+
+category: Developer Tools
+
+# Desktop app built with Kotlin and Compose Multiplatform.
+supported_os:
+  - macos
+
+developer: Prateek Thakur
+website: https://github.com/prateekthakur272/OpenRest
+support_url: https://github.com/prateekthakur272/OpenRest/issues
+
+tags:
+  - api-client
+  - rest
+  - http
+  - graphql
+  - postman-alternative
+  - developer-tools
+  - flutter
