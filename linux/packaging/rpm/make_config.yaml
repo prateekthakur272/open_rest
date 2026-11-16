@@ -4,6 +4,8 @@ summary: An open, file-based API client
 packager: Prateek Thakur
 packagerEmail: prateekthakur272@gmail.com
 url: https://github.com/prateekthakur272/open_rest
+license: Unspecified
+description: Requests, environments and workflows live in plain folders you own. Supports HTTP, GraphQL and WebSocket requests.
 icon: linux/runner/resources/icon.png
 generic_name: API Client
 categories:

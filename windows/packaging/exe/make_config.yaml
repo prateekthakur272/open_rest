@@ -2,5 +2,6 @@ app_id: D5306D18-FC88-431C-8581-DB9FDD8DD13E
 publisher_name: Prateek Thakur
 publisher_url: https://github.com/prateekthakur272/open_rest
 display_name: OpenRest
+executable_name: OpenRest.exe
 create_desktop_icon: true
 setup_icon_file: windows/runner/resources/app_icon.ico

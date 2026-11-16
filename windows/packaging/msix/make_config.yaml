@@ -1,10 +1,8 @@
 display_name: OpenRest
 publisher_display_name: Prateek Thakur
 identity_name: dev.prateekthakur.openrest
-# a.b.c.d; the release workflow sets it from the version in pubspec.yaml
 msix_version: 2.1.0.0
 logo_path: macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_1024.png
 architecture: x64
-# Unsigned: sign it with your own certificate before sideloading (or upload it to the Microsoft Store as is).
 sign_msix: false
 install_certificate: false
