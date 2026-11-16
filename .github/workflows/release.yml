@@ -94,26 +94,13 @@ jobs:
       - name: Build
         run: flutter build macos --release
 
-      - name: Check signature and architectures
-        run: |
-          app="build/macos/Build/Products/Release/${APP_NAME}.app"
-          codesign --verify --deep --strict "$app"
-          archs=$(lipo -archs "$app/Contents/MacOS/${APP_NAME}")
-          echo "architectures: $archs"
-          case "$archs" in
-            *arm64*x86_64*|*x86_64*arm64*) ;;
-            *) echo "::error::Expected a universal binary (arm64 + x86_64), got: $archs"; exit 1 ;;
-          esac
-
+      # Verifies the signature and that both architectures are present, then builds the drag-to-Applications DMG.
       - name: Package DMG
         env:
           VERSION: ${{ needs.verify.outputs.version }}
         run: |
-          mkdir -p dist dmg
-          cp -R "build/macos/Build/Products/Release/${APP_NAME}.app" dmg/
-          ln -s /Applications dmg/Applications
-          hdiutil create -volname "$APP_NAME" -srcfolder dmg -ov -format UDZO \
-            "dist/${APP_NAME}-${VERSION}-macos-universal.dmg"
+          packaging/macos/build-dmg.sh "$VERSION" \
+            "build/macos/Build/Products/Release/${APP_NAME}.app" dist
 
       - uses: actions/upload-artifact@v4
         with:
@@ -126,6 +113,8 @@ jobs:
     needs: verify
     runs-on: windows-latest
     timeout-minutes: 45
+    env:
+      VERSION: ${{ needs.verify.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -140,19 +129,53 @@ jobs:
       - name: Build
         run: flutter build windows --release
 
-      - name: Package ZIP
+      # Flutter apps need the Visual C++ runtime. Shipping the three DLLs next to the exe (app-local deployment)
+      # means the app starts even on a machine that never installed the redistributable.
+      - name: Bundle the Visual C++ runtime
         shell: pwsh
-        env:
-          VERSION: ${{ needs.verify.outputs.version }}
         run: |
+          $out = "build/windows/x64/runner/Release"
+          foreach ($dll in "msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll") {
+            $src = Join-Path $env:SystemRoot "System32/$dll"
+            if (Test-Path $src) { Copy-Item $src $out -Force; Write-Host "bundled $dll" }
+            else { Write-Warning "$dll not found on this runner" }
+          }
+
+      - name: Build MSI (WiX)
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 4.0.5
+          $env:PATH += ";$env:USERPROFILE\.dotnet\tools"
           New-Item -ItemType Directory -Force dist | Out-Null
-          Compress-Archive -Path "build/windows/x64/runner/Release/*" `
-            -DestinationPath "dist/$env:APP_NAME-$env:VERSION-windows-x64.zip"
+          # MSI versions are numeric (major.minor.build): drop a pre-release suffix such as -beta.1.
+          $msiVersion = ($env:VERSION -split '-')[0]
+          $build = (Resolve-Path "build/windows/x64/runner/Release").Path
+          $icon = (Resolve-Path "windows/runner/resources/app_icon.ico").Path
+          wix build packaging/windows/openrest.wxs -arch x64 `
+            -d "Version=$msiVersion" -d "BuildDir=$build" -d "IconPath=$icon" `
+            -o "dist/$env:APP_NAME-$env:VERSION-windows-x64.msi"
+          if ($LASTEXITCODE -ne 0) { throw "wix build failed with exit code $LASTEXITCODE" }
+          Get-ChildItem dist
+
+      - name: Check the MSI installs and uninstalls
+        shell: pwsh
+        run: |
+          $msi = (Get-ChildItem dist/*.msi | Select-Object -First 1).FullName
+          $exe = "$env:ProgramFiles\OpenRest\OpenRest.exe"
+          $p = Start-Process msiexec -ArgumentList "/i", "`"$msi`"", "/qn", "/l*v", "install.log" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Get-Content install.log -Tail 60; throw "install failed: $($p.ExitCode)" }
+          if (-not (Test-Path $exe)) { throw "OpenRest.exe was not installed to $exe" }
+          if (-not (Test-Path "$env:ProgramFiles\OpenRest\data\app.so")) { throw "data folder was not installed" }
+          Write-Host "installed OK"
+          $p = Start-Process msiexec -ArgumentList "/x", "`"$msi`"", "/qn", "/l*v", "uninstall.log" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { Get-Content uninstall.log -Tail 60; throw "uninstall failed: $($p.ExitCode)" }
+          if (Test-Path $exe) { throw "OpenRest.exe is still there after uninstall" }
+          Write-Host "uninstalled OK"
 
       - uses: actions/upload-artifact@v4
         with:
           name: windows-x64
-          path: dist/*.zip
+          path: dist/*.msi
           if-no-files-found: error
 
   linux:
@@ -160,6 +183,9 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      VERSION: ${{ needs.verify.outputs.version }}
+      BUNDLE: build/linux/x64/release/bundle
     steps:
       - uses: actions/checkout@v4
 
@@ -179,18 +205,47 @@ jobs:
       - name: Build
         run: flutter build linux --release
 
-      - name: Package tar.gz
-        env:
-          VERSION: ${{ needs.verify.outputs.version }}
+      - name: Package .deb
+        run: packaging/linux/build-deb.sh "$VERSION" "$BUNDLE" dist
+
+      - name: Check the .deb installs and starts linking
         run: |
-          mkdir -p dist
-          tar -C build/linux/x64/release/bundle -czf \
-            "dist/${APP_NAME}-${VERSION}-linux-x64.tar.gz" .
+          dpkg-deb --info dist/*.deb
+          dpkg-deb --contents dist/*.deb
+          sudo apt-get install -y ./dist/*.deb
+          test -x /usr/bin/openrest
+          # Every shared library the app needs must resolve after a normal install.
+          if ldd /opt/openrest/OpenRest | grep "not found"; then
+            echo "::error::the installed app has unresolved shared libraries"
+            exit 1
+          fi
+
+      - name: Package .rpm
+        run: |
+          sudo apt-get install -y rpm
+          sudo gem install --no-document fpm
+          packaging/linux/build-rpm.sh "$VERSION" "$BUNDLE" dist
+          rpm -qpi dist/*.rpm
+          rpm -qpl dist/*.rpm
+          rpm -qpR dist/*.rpm
+
+      - name: Package AppImage
+        env:
+          # The runner has no FUSE; let the tool unpack itself instead.
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: |
+          sudo curl -fsSL -o /usr/local/bin/appimagetool \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          sudo chmod +x /usr/local/bin/appimagetool
+          packaging/linux/build-appimage.sh "$VERSION" "$BUNDLE" dist
 
       - uses: actions/upload-artifact@v4
         with:
           name: linux-x64
-          path: dist/*.tar.gz
+          path: |
+            dist/*.deb
+            dist/*.rpm
+            dist/*.AppImage
           if-no-files-found: error
 
   release:

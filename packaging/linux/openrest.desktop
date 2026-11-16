@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=OpenRest
+GenericName=API Client
+Comment=An open, file-based API client
+Exec=openrest
+Icon=openrest
+Terminal=false
+Categories=Development;Network;
+Keywords=api;rest;http;graphql;websocket;postman;
