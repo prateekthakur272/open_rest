@@ -20,6 +20,7 @@ import 'package:open_rest/core/http/http.dart';
 import 'package:open_rest/core/interop/importers.dart';
 import 'package:open_rest/core/model/model.dart';
 import 'package:open_rest/core/run/workflow_engine.dart';
+import 'package:open_rest/features/request/graphql_pane.dart';
 import 'package:open_rest/features/request/tls_editor.dart';
 import 'package:open_rest/features/response/response_pane.dart';
 import 'package:open_rest/platform/platform.dart';
@@ -934,50 +935,7 @@ class _BodyPane extends StatelessWidget {
           scrollbar: true,
         );
       case BodyMode.Graphql:
-        body = Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          spacing: 6,
-          children: [
-            const SectionLabel('QUERY'),
-            Expanded(
-              flex: 14,
-              child: CodeEditor(
-                value: r.bodyGraphql,
-                onChange: (v) => upd((it) => it.copyWith(bodyGraphql: v)),
-                lang: 'js',
-                placeholder: 'query {\n  viewer { id }\n}',
-                showStatus: true,
-                scrollbar: true,
-              ),
-            ),
-            Row(
-              children: [
-                const Expanded(child: SectionLabel('VARIABLES (JSON)')),
-                Btn(
-                  label: 'Prettify',
-                  onClick: () {
-                    final v = Json.prettyText(r.bodyGraphqlVars);
-                    if (v != null) {
-                      upd((it) => it.copyWith(bodyGraphqlVars: v));
-                    } else {
-                      state.showToast('Variables are not valid JSON');
-                    }
-                  },
-                  icon: Ic.edit,
-                ),
-              ],
-            ),
-            Expanded(
-              flex: 10,
-              child: CodeEditor(
-                value: r.bodyGraphqlVars,
-                onChange: (v) => upd((it) => it.copyWith(bodyGraphqlVars: v)),
-                lang: 'json',
-                scrollbar: true,
-              ),
-            ),
-          ],
-        );
+        body = GraphqlBody(state: state, tab: tab);
       case BodyMode.Form:
         body = ScrollBox(
           content: [

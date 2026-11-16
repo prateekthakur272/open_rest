@@ -588,6 +588,7 @@ class OrYaml {
           r.bodyXml,
           r.bodyGraphql,
           r.bodyGraphqlVars,
+          r.operationName,
           r.bodyFile,
         ].any((it) => it.isNotEmpty) ||
         r.formUrlEncoded.isNotEmpty ||
@@ -613,6 +614,7 @@ class OrYaml {
                 ('xml', r.bodyXml),
                 ('graphql', r.bodyGraphql),
                 ('graphqlVariables', r.bodyGraphqlVars),
+                ('graphqlOperation', r.operationName),
                 ('form', kvOut(r.formUrlEncoded)),
                 ('multipart', kvOut(r.multipart)),
                 ('file', r.bodyFile),
@@ -657,6 +659,7 @@ class OrYaml {
       bodyXml: _txt(body?['xml']),
       bodyGraphql: _txt(body?['graphql']),
       bodyGraphqlVars: _txt(body?['graphqlVariables']),
+      operationName: _s(body?['graphqlOperation']),
       bodyFile: _s(body?['file']),
       formUrlEncoded: kvIn(body?['form']),
       multipart: kvIn(body?['multipart']),

@@ -94,6 +94,13 @@ final Map<String, RegExp> _langs = () {
       cmdlet: true,
       types: false,
     ),
+    'graphql': _LangSpec(
+      'query|mutation|subscription|fragment|on|true|false|null|schema|type|input|enum|interface|union|scalar|extend|directive|implements|repeatable',
+      line: ['#'],
+      block: false,
+      triple: true,
+      dollarVar: true,
+    ),
     'sh': _LangSpec(
       'curl|wget|http|https|echo|export',
       line: ['#'],

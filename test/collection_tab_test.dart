@@ -100,7 +100,8 @@ void main() {
     await t.pump();
     await t.pump(const Duration(milliseconds: 300));
 
-    await t.tap(find.text('Save'));
+    // The docs card and the page save bar both have a Save button; use the bar's.
+    await t.tap(find.text('Save').last);
     await t.pump();
     await t.pump(const Duration(seconds: 5));
     expect(s.collection(dir)!.config.docs, '# Saved');

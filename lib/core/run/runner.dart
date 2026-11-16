@@ -283,9 +283,11 @@ class Execution {
       case BodyMode.Graphql:
         final vs = interp(req.bodyGraphqlVars);
         final vars = vs.trim().isNotEmpty ? Json.tryParse(vs) : null;
+        final op = interp(req.operationName).trim();
         return BodyRaw(
           text: Json.stringify({
             'query': interp(view.body),
+            if (op.isNotEmpty) 'operationName': op,
             'variables': vars ?? <String, dynamic>{},
           }),
           contentType: 'application/json',

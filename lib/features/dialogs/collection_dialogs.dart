@@ -5,6 +5,7 @@ import 'package:open_rest/app/app_state.dart';
 import 'package:open_rest/components/buttons.dart';
 import 'package:open_rest/components/field.dart';
 import 'package:open_rest/components/layout.dart';
+import 'package:open_rest/components/modifiers.dart';
 import 'package:open_rest/components/overlay.dart';
 import 'package:open_rest/components/text.dart';
 import 'package:open_rest/core/model/model.dart';
@@ -45,6 +46,7 @@ class _NewRequestDialogState extends State<NewRequestDialog> with _AutoFocus {
   String name = '';
   String method = 'GET';
   String url = '';
+  late bool graphql = widget.m.graphql;
 
   bool get isCurl => url.trimLeft().startsWith('curl ');
 
@@ -54,7 +56,14 @@ class _NewRequestDialogState extends State<NewRequestDialog> with _AutoFocus {
     if (isCurl) {
       state.createRequestFromCurl(widget.m.collection, widget.m.dir, url);
     } else {
-      state.createRequest(widget.m.collection, widget.m.dir, name, method, url);
+      state.createRequest(
+        widget.m.collection,
+        widget.m.dir,
+        name,
+        method,
+        url,
+        graphql: graphql,
+      );
     }
   }
 
@@ -75,13 +84,63 @@ class _NewRequestDialogState extends State<NewRequestDialog> with _AutoFocus {
         ),
       ],
       content: [
+        const SectionLabel('REQUEST TYPE'),
+        Row(
+          spacing: 8,
+          children: [
+            Expanded(
+              child: _TypeCard(
+                key: const ValueKey('new-type-http'),
+                icon: Ic.http,
+                title: 'HTTP',
+                caption: 'REST & web APIs',
+                color: context.pal.ok,
+                selected: !graphql,
+                onClick: () => setState(() => graphql = false),
+              ),
+            ),
+            Expanded(
+              child: _TypeCard(
+                key: const ValueKey('new-type-graphql'),
+                icon: Ic.graph,
+                title: 'GraphQL',
+                caption: 'Queries & schema',
+                color: methodColor('GQL', context.pal),
+                selected: graphql,
+                onClick: () => setState(() => graphql = true),
+              ),
+            ),
+            Expanded(
+              child: _TypeCard(
+                key: const ValueKey('new-type-websocket'),
+                icon: Ic.websocket,
+                title: 'WebSocket',
+                caption: 'Live messages',
+                color: context.pal.syntaxKeyword,
+                selected: false,
+                soon: true,
+              ),
+            ),
+            Expanded(
+              child: _TypeCard(
+                key: const ValueKey('new-type-grpc'),
+                icon: Ic.grpc,
+                title: 'gRPC',
+                caption: 'Protobuf services',
+                color: context.pal.warn,
+                selected: false,
+                soon: true,
+              ),
+            ),
+          ],
+        ),
         const SectionLabel('NAME'),
         SizedBox(
           width: double.infinity,
           child: Field(
             value: name,
             onChange: (v) => setState(() => name = v),
-            placeholder: 'Get users',
+            placeholder: graphql ? 'Countries' : 'Get users',
             focusRequester: fr,
             highlightVars: false,
           ),
@@ -90,18 +149,28 @@ class _NewRequestDialogState extends State<NewRequestDialog> with _AutoFocus {
         Row(
           spacing: 8,
           children: [
-            Dropdown(
-              selected: method,
-              options: HTTP_METHODS,
-              onSelect: (v) => setState(() => method = v),
-              color: methodColor(method, context.pal),
-              weight: FontWeight.w700,
-            ),
+            if (graphql)
+              T(
+                'GQL',
+                color: methodColor('GQL', context.pal),
+                weight: FontWeight.w700,
+                size: 12,
+              )
+            else
+              Dropdown(
+                selected: method,
+                options: HTTP_METHODS,
+                onSelect: (v) => setState(() => method = v),
+                color: methodColor(method, context.pal),
+                weight: FontWeight.w700,
+              ),
             Expanded(
               child: Field(
                 value: url,
                 onChange: (v) => setState(() => url = v),
-                placeholder: 'https://api.example.com/users',
+                placeholder: graphql
+                    ? 'https://api.example.com/graphql'
+                    : 'https://api.example.com/users',
                 mono: true,
                 onEnter: () {
                   if (isCurl || name.trim().isNotEmpty) ok();
@@ -257,6 +326,98 @@ class _OpenCollectionDialogState extends State<OpenCollectionDialog> {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// A selectable protocol card of the new-request dialog: tinted icon, name and a one-line caption.
+class _TypeCard extends StatelessWidget {
+  const _TypeCard({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.caption,
+    required this.color,
+    required this.selected,
+    this.onClick,
+    this.soon = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final String caption;
+  final Color color;
+  final bool selected;
+  final VoidCallback? onClick;
+
+  /// Not available yet: shown dimmed with a label and not clickable.
+  final bool soon;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    final fg = soon ? p.muted : color;
+    return Opacity(
+      opacity: soon ? 0.55 : 1,
+      child: Clickable(
+        onClick: soon ? () {} : (onClick ?? () {}),
+        cursor: soon ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 9),
+          decoration: BoxDecoration(
+            color: selected ? color.withValues(alpha: 0.10) : p.bg,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: selected ? color : p.border,
+              width: selected ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 8,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: fg.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(child: Ico(icon, tint: fg, size: 17)),
+                  ),
+                  const Spacer(),
+                  if (soon)
+                    T('Soon', color: p.muted, size: 10, weight: FontWeight.w600)
+                  else if (selected)
+                    Ico(Ic.check, tint: color, size: 15),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  T(
+                    title,
+                    weight: FontWeight.w600,
+                    size: 13,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  T(
+                    caption,
+                    color: p.muted,
+                    size: 11,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

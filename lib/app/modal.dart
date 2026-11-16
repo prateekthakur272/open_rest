@@ -82,23 +82,32 @@ class ModalConfirm extends Modal {
 
 /// New request form.
 class ModalNewRequest extends Modal {
-  const ModalNewRequest({required this.collection, required this.dir});
+  const ModalNewRequest({
+    required this.collection,
+    required this.dir,
+    this.graphql = false,
+  });
   final String collection;
   final String dir;
 
-  ModalNewRequest copyWith({String? collection, String? dir}) =>
+  /// Start on the GraphQL request type.
+  final bool graphql;
+
+  ModalNewRequest copyWith({String? collection, String? dir, bool? graphql}) =>
       ModalNewRequest(
         collection: collection ?? this.collection,
         dir: dir ?? this.dir,
+        graphql: graphql ?? this.graphql,
       );
 
   @override
   bool operator ==(Object other) =>
       other is ModalNewRequest &&
       other.collection == collection &&
-      other.dir == dir;
+      other.dir == dir &&
+      other.graphql == graphql;
   @override
-  int get hashCode => Object.hash(collection, dir);
+  int get hashCode => Object.hash(collection, dir, graphql);
 }
 
 /// New collection form.

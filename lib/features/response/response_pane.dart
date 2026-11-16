@@ -23,6 +23,7 @@ import 'package:open_rest/components/tables.dart';
 import 'package:open_rest/components/test_results.dart';
 import 'package:open_rest/components/text.dart';
 import 'package:open_rest/core/http/http.dart';
+import 'package:open_rest/core/graphql/graphql.dart';
 import 'package:open_rest/core/model/model.dart';
 import 'package:open_rest/platform/platform.dart';
 import 'package:open_rest/theme/icons.dart';
@@ -140,6 +141,42 @@ class ResponsePane extends StatelessWidget {
   }
 }
 
+/// Banner listing the `errors[]` of a GraphQL response, which usually arrives with HTTP 200.
+class _GraphqlErrors extends StatelessWidget {
+  const _GraphqlErrors({required this.errors});
+  final List<String> errors;
+
+  @override
+  Widget build(BuildContext context) {
+    final pal = context.pal;
+    return Container(
+      key: const ValueKey('gql-errors'),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: pal.err.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: pal.err.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 4,
+        children: [
+          Chip(
+            errors.length == 1
+                ? 'GRAPHQL ERROR'
+                : '${errors.length} GRAPHQL ERRORS',
+            color: pal.err,
+          ),
+          for (final e in errors.take(6))
+            T(e, mono: true, size: 12, color: pal.err),
+          if (errors.length > 6)
+            T('+${errors.length - 6} more', size: 11, color: pal.muted),
+        ],
+      ),
+    );
+  }
+}
+
 class _ResponseBody extends StatelessWidget {
   const _ResponseBody({
     required this.state,
@@ -173,9 +210,23 @@ class _ResponseBody extends StatelessWidget {
     Widget content;
     switch (tab.resTab) {
       case 'Response':
-        content = tab.diff && older != null
+        final gqlErrors =
+            tab.draft.bodyMode == BodyMode.Graphql && res.size < 2000000
+            ? graphqlErrors(Json.tryParse(res.text))
+            : const <String>[];
+        final bodyView = tab.diff && older != null
             ? DiffView(old: _bodyForDiff(older), new_: _bodyForDiff(res))
             : _BodyView(state: state, tab: tab, res: res);
+        content = gqlErrors.isEmpty
+            ? bodyView
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                spacing: 8,
+                children: [
+                  _GraphqlErrors(errors: gqlErrors),
+                  Expanded(child: bodyView),
+                ],
+              );
       case 'Headers':
         final sorted = [...res.headers]
           ..sort((a, b) => a.$1.toLowerCase().compareTo(b.$1.toLowerCase()));

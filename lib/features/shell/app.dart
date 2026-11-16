@@ -765,10 +765,10 @@ class _TabStripState extends State<_TabStrip> {
                             )
                           else
                             T(
-                              t.draft.method == 'DELETE'
+                              t.draft.displayMethod == 'DELETE'
                                   ? 'DEL'
-                                  : t.draft.method,
-                              color: methodColor(t.draft.method, p),
+                                  : t.draft.displayMethod,
+                              color: methodColor(t.draft.displayMethod, p),
                               size: 10,
                               weight: FontWeight.w700,
                             ),

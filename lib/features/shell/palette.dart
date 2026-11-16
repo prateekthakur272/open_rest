@@ -95,8 +95,8 @@ class _PaletteState extends State<Palette> {
             title: r.name,
             sub:
                 '${[c.name, folder].where((s) => s.isNotEmpty).join(' / ')}  ·  ${_take(r.request.url, 60)}',
-            badge: r.request.method,
-            badgeColor: methodColor(r.request.method, p),
+            badge: r.request.displayMethod,
+            badgeColor: methodColor(r.request.displayMethod, p),
             group: 'Requests',
             run: go(() => state.openRequest(c.path, r)),
           ),
@@ -144,6 +144,14 @@ class _PaletteState extends State<Palette> {
         () =>
             state.modal = ModalNewRequest(collection: col.path, dir: col.path),
         '⌘N',
+      );
+      act(
+        'New GraphQL request',
+        () => state.modal = ModalNewRequest(
+          collection: col.path,
+          dir: col.path,
+          graphql: true,
+        ),
       );
       act('New folder', () => state.promptNewFolder(col.path, col.path));
       act(

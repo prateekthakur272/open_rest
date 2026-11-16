@@ -57,6 +57,9 @@ class SavedState {
   final List<String>? expandedFolders;
   final String? selectedCollection;
 
+  /// Per-tab UI state (sub-tab names, collection page) keyed by tab key.
+  final Map<String, Map<String, String>> tabState;
+
   const SavedState({
     required this.collections,
     required this.envs,
@@ -69,6 +72,7 @@ class SavedState {
     this.sidebarTab,
     this.expandedFolders,
     this.selectedCollection,
+    this.tabState = const {},
   });
 
   SavedState copyWith({
@@ -83,6 +87,7 @@ class SavedState {
     Object? sidebarTab = _unset,
     Object? expandedFolders = _unset,
     Object? selectedCollection = _unset,
+    Map<String, Map<String, String>>? tabState,
   }) => SavedState(
     collections: collections ?? this.collections,
     envs: envs ?? this.envs,
@@ -105,6 +110,7 @@ class SavedState {
     selectedCollection: identical(selectedCollection, _unset)
         ? this.selectedCollection
         : selectedCollection as String?,
+    tabState: tabState ?? this.tabState,
   );
 }
 
@@ -265,6 +271,15 @@ class AppStore {
         selectedCollection: m['selectedCollection'] is String
             ? m['selectedCollection'] as String
             : null,
+        tabState: () {
+          final ts = Json.obj(m['tabState']);
+          if (ts == null) return <String, Map<String, String>>{};
+          return {
+            for (final e in ts.entries)
+              if (Json.obj(e.value) case final v?)
+                e.key: {for (final x in v.entries) x.key: '${x.value}'},
+          };
+        }(),
       );
     } catch (e, st) {
       if (_exists(_stateFile)) {
@@ -290,6 +305,7 @@ class AppStore {
         'sidebarTab': s.sidebarTab,
         'expandedFolders': s.expandedFolders,
         'selectedCollection': s.selectedCollection,
+        'tabState': s.tabState,
       }, pretty: true),
     );
   }

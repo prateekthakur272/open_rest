@@ -276,6 +276,7 @@ class ApiRequest {
   final String bodyXml;
   final String bodyGraphql;
   final String bodyGraphqlVars;
+  final String operationName;
   final String bodyFile;
   final List<KV> formUrlEncoded;
   final List<KV> multipart;
@@ -305,6 +306,7 @@ class ApiRequest {
     this.bodyXml = '',
     this.bodyGraphql = '',
     this.bodyGraphqlVars = '',
+    this.operationName = '',
     this.bodyFile = '',
     this.formUrlEncoded = const [],
     this.multipart = const [],
@@ -321,6 +323,9 @@ class ApiRequest {
     this.tls = const TlsConfig(),
   });
 
+  /// Label shown in lists and tabs: `GQL` for GraphQL bodies, otherwise the HTTP method.
+  String get displayMethod => bodyMode == BodyMode.Graphql ? 'GQL' : method;
+
   ApiRequest copyWith({
     String? name,
     int? seq,
@@ -335,6 +340,7 @@ class ApiRequest {
     String? bodyXml,
     String? bodyGraphql,
     String? bodyGraphqlVars,
+    String? operationName,
     String? bodyFile,
     List<KV>? formUrlEncoded,
     List<KV>? multipart,
@@ -363,6 +369,7 @@ class ApiRequest {
     bodyXml: bodyXml ?? this.bodyXml,
     bodyGraphql: bodyGraphql ?? this.bodyGraphql,
     bodyGraphqlVars: bodyGraphqlVars ?? this.bodyGraphqlVars,
+    operationName: operationName ?? this.operationName,
     bodyFile: bodyFile ?? this.bodyFile,
     formUrlEncoded: formUrlEncoded ?? this.formUrlEncoded,
     multipart: multipart ?? this.multipart,
@@ -395,6 +402,7 @@ class ApiRequest {
       other.bodyXml == bodyXml &&
       other.bodyGraphql == bodyGraphql &&
       other.bodyGraphqlVars == bodyGraphqlVars &&
+      other.operationName == operationName &&
       other.bodyFile == bodyFile &&
       listEquals(other.formUrlEncoded, formUrlEncoded) &&
       listEquals(other.multipart, multipart) &&
@@ -425,6 +433,7 @@ class ApiRequest {
     bodyXml,
     bodyGraphql,
     bodyGraphqlVars,
+    operationName,
     bodyFile,
     Object.hashAll(formUrlEncoded),
     Object.hashAll(multipart),

@@ -375,7 +375,7 @@ class RequestRow extends StatelessWidget {
         final t = tab;
         return [
           const SizedBox(width: 6),
-          MethodPill(r.request.method),
+          MethodPill(r.request.displayMethod),
           if (state.renaming == r.path)
             Expanded(
               child: InlineRename(

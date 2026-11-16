@@ -14,6 +14,9 @@ class Ic {
   static const IconData refresh = Icons.refresh_rounded;
   static const IconData collapseAll = Icons.unfold_less_rounded;
   static const IconData up = Icons.keyboard_arrow_up_rounded;
+  static const IconData chevronRight = Icons.chevron_right_rounded;
+  static const IconData chevronLeft = Icons.chevron_left_rounded;
+  static const IconData docs = Icons.menu_book_rounded;
   static const IconData down = Icons.keyboard_arrow_down_rounded;
   static const IconData dropDown = Icons.keyboard_arrow_down_rounded;
   static const IconData check = Icons.check_rounded;
@@ -75,6 +78,9 @@ class Ic {
   static const IconData noBody = Icons.block_rounded;
   static const IconData formBody = Icons.list_alt_rounded;
   static const IconData graph = Icons.hub_rounded;
+  static const IconData http = Icons.http_rounded;
+  static const IconData websocket = Icons.sync_alt_rounded;
+  static const IconData grpc = Icons.bolt_rounded;
   static const IconData fmtJson = Icons.data_object_rounded;
   static const IconData fmtHtml = Icons.html_rounded;
   static const IconData fmtXml = Icons.code_rounded;

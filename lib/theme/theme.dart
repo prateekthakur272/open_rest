@@ -122,6 +122,8 @@ Color methodColor(String m, Pal p) {
       return p.dark ? const Color(0xFFB794F6) : const Color(0xFF7C3AED);
     case 'DELETE':
       return p.dark ? const Color(0xFFEF5B5B) : const Color(0xFFD13438);
+    case 'GQL':
+      return p.dark ? const Color(0xFFF472B6) : const Color(0xFFC21E8C);
     default:
       return p.muted;
   }

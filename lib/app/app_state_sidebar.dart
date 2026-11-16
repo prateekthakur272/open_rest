@@ -33,14 +33,17 @@ extension AppStateSidebar on AppState {
     String dir,
     String name,
     String method,
-    String url,
-  ) => guard(() {
+    String url, {
+    bool graphql = false,
+  }) => guard(() {
     require(name.trim().isNotEmpty, () => 'Name required');
     final r = ApiRequest(
       name: name.trim(),
-      method: method,
+      method: graphql ? 'POST' : method,
       url: url.trim(),
       params: UrlSync.paramsFromUrl(url.trim(), const []),
+      bodyMode: graphql ? BodyMode.Graphql : BodyMode.None,
+      bodyGraphql: graphql ? 'query {\n  __typename\n}\n' : '',
     );
     final f = Collections.createRequest(dir, r);
     reload(col);

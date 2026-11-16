@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:open_rest/app/modal.dart';
 import 'package:open_rest/app/sessions.dart';
 import 'package:open_rest/core/codegen/code_gen.dart';
+import 'package:open_rest/core/graphql/graphql.dart';
 import 'package:open_rest/core/logging/log.dart';
 import 'package:open_rest/core/model/model.dart';
 import 'package:open_rest/core/run/runner.dart';
@@ -262,10 +263,41 @@ class AppState extends ChangeNotifier {
     for (final k in saved.tabs) {
       Log.orElse('app', 'Cannot restore tab $k', null, () => _restoreTab(k));
     }
+    for (final t in tabs) {
+      final ui = saved.tabState[tabKey(t)];
+      if (ui != null) _applyTabUi(t, ui);
+    }
     final a = saved.activeTab;
     if (a != null) {
       final t = firstMatch(tabs, (t) => tabKey(t) == a);
       if (t != null) activeTabId = t.id;
+    }
+  }
+
+  /// The UI state worth keeping across launches: which sub-tab / page each tab shows.
+  Map<String, String> _tabUi(RequestTab t) {
+    if (t.collection != null) return {'page': t.collection!.page.name};
+    if (t.runner != null || t.workflow != null) return const {};
+    return {
+      'req': t.reqTab,
+      'res': t.resTab,
+      'script': t.scriptTab,
+      'vars': t.varsTab,
+    };
+  }
+
+  void _applyTabUi(RequestTab t, Map<String, String> ui) {
+    final page = ui['page'];
+    if (t.collection != null && page != null) {
+      for (final s in NodeSection.values) {
+        if (s.name == page) t.collection!.page = s;
+      }
+    }
+    if (t.isRequest) {
+      if (ui['req'] != null) t.reqTab = ui['req']!;
+      if (ui['res'] != null) t.resTab = ui['res']!;
+      if (ui['script'] != null) t.scriptTab = ui['script']!;
+      if (ui['vars'] != null) t.varsTab = ui['vars']!;
     }
   }
 
@@ -401,6 +433,8 @@ class AppState extends ChangeNotifier {
     // Open tabs (in order) and the active one.
     tabs.map(tabKey).join('\u0001'),
     activeTab == null ? null : tabKey(activeTab!),
+    // Which sub-tab / page each open tab shows.
+    tabs.map((t) => _tabUi(t).values.join('|')).join('\u0001'),
   ];
 
   void persist() {
@@ -420,6 +454,10 @@ class AppState extends ChangeNotifier {
             if (e.value) e.key,
         ],
         selectedCollection: selectedCollection,
+        tabState: {
+          for (final t in tabs)
+            if (_tabUi(t).isNotEmpty) tabKey(t): _tabUi(t),
+        },
       ),
     );
   }
@@ -452,6 +490,8 @@ class AppState extends ChangeNotifier {
       workflow: workflow,
       collection: collection,
     );
+    // A GraphQL request is all about its query: open on the Body tab instead of Params.
+    if (t.isRequest && req.bodyMode == BodyMode.Graphql) t.reqTab = 'Body';
     t.onChange = notifyListeners;
     return t;
   }
@@ -691,6 +731,52 @@ class AppState extends ChangeNotifier {
       while (history.length > 200) {
         history.removeAt(history.length - 1);
       }
+    }
+  }
+
+  /// Fetches the GraphQL schema of [tab]'s endpoint with an introspection query (same auth, headers and variables as the request).
+  Future<void> fetchGraphqlSchema(RequestTab tab) async {
+    final col = collection(tab.collectionPath);
+    if (col == null || tab.gqlLoading) return;
+    tab.gqlLoading = true;
+    tab.gqlError = null;
+    final d = tab.draft;
+    final probe = d.copyWith(
+      method: 'POST',
+      bodyMode: BodyMode.Graphql,
+      bodyGraphql: introspectionQuery,
+      bodyGraphqlVars: '',
+      operationName: 'IntrospectionQuery',
+      preScript: '',
+      postScript: '',
+      tests: '',
+      assertions: const [],
+      postVars: const [],
+    );
+    try {
+      final r = await Execution(
+        runCtx(col),
+        RequestNode(path: tab.filePath, name: d.name, request: probe),
+      ).run();
+      final res = r.response;
+      if (r.error != null || res == null) {
+        tab.gqlError = r.error ?? 'No response';
+      } else {
+        final body = Json.tryParse(res.text);
+        final schema = GqlSchema.parse(body);
+        if (schema != null) {
+          tab.gqlSchema = schema;
+        } else {
+          final errs = graphqlErrors(body);
+          tab.gqlError = errs.isNotEmpty
+              ? errs.first
+              : 'HTTP ${res.status}: not a GraphQL schema response (introspection may be disabled)';
+        }
+      }
+    } catch (e) {
+      tab.gqlError = errorText(e);
+    } finally {
+      tab.gqlLoading = false;
     }
   }
 

@@ -2,6 +2,7 @@ import 'dart:collection';
 import 'dart:ui' show Rect, VoidCallback;
 
 import 'package:flutter/foundation.dart' show ChangeNotifier;
+import 'package:open_rest/core/graphql/graphql.dart';
 import 'package:open_rest/core/model/model.dart';
 import 'package:open_rest/core/run/runner.dart';
 import 'package:open_rest/core/run/workflow_model.dart';
@@ -479,8 +480,31 @@ class RequestTab extends SessionNotifier {
   bool _diff = false;
   String _find = '';
 
+  // GraphQL: the introspected schema (session only) and the docs panel state.
+  GqlSchema? _gqlSchema;
+  bool _gqlLoading = false;
+  String? _gqlError;
+
   /// Bumped to abandon an in-flight send: a finished send applies only if its generation is still current.
   int sendGen = 0;
+
+  GqlSchema? get gqlSchema => _gqlSchema;
+  set gqlSchema(GqlSchema? v) {
+    _gqlSchema = v;
+    changed();
+  }
+
+  bool get gqlLoading => _gqlLoading;
+  set gqlLoading(bool v) {
+    _gqlLoading = v;
+    changed();
+  }
+
+  String? get gqlError => _gqlError;
+  set gqlError(String? v) {
+    _gqlError = v;
+    changed();
+  }
 
   String get filePath => _filePath;
   set filePath(String v) {
