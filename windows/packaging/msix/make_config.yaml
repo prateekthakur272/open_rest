@@ -1,5 +1,6 @@
 display_name: OpenRest
 publisher_display_name: Prateek Thakur
+publisher: CN=Prateek Thakur
 identity_name: dev.prateekthakur.openrest
 msix_version: 2.1.0.0
 logo_path: macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_1024.png

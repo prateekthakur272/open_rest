@@ -149,7 +149,7 @@ jobs:
   linux:
     name: Linux x64
     needs: verify
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 45
     env:
       # The runner has no FUSE; let appimagetool unpack itself instead.
