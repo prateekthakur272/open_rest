@@ -1,0 +1,11 @@
+display_name: OpenRest
+icon: linux/runner/resources/icon.png
+generic_name: API Client
+categories:
+  - Development
+  - Network
+keywords:
+  - api
+  - rest
+  - http
+startup_notify: true

@@ -1,0 +1,21 @@
+display_name: OpenRest
+package_name: openrest
+maintainer:
+  name: Prateek Thakur
+  email: prateekthakur272@gmail.com
+installed_size: 60000
+priority: optional
+section: devel
+essential: false
+icon: linux/runner/resources/icon.png
+generic_name: API Client
+categories:
+  - Development
+  - Network
+keywords:
+  - api
+  - rest
+  - http
+  - graphql
+  - websocket
+startup_notify: true

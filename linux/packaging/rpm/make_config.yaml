@@ -1,0 +1,12 @@
+display_name: OpenRest
+package_name: openrest
+summary: An open, file-based API client
+packager: Prateek Thakur
+packagerEmail: prateekthakur272@gmail.com
+url: https://github.com/prateekthakur272/open_rest
+icon: linux/runner/resources/icon.png
+generic_name: API Client
+categories:
+  - Development
+  - Network
+startup_notify: true

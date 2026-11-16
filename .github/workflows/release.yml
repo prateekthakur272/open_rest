@@ -16,7 +16,6 @@ permissions:
 
 env:
   FLUTTER_VERSION: "3.50.0"
-  APP_NAME: OpenRest
 
 jobs:
   verify:
@@ -74,8 +73,8 @@ jobs:
       - run: flutter test --timeout 60s
 
   macos:
-    # One universal build: Flutter's release app contains both arm64 and x86_64, so the same DMG runs on
-    # Apple Silicon and Intel Macs.
+    # fastforge builds Flutter's release app, which contains both arm64 and x86_64, so the same DMG and PKG run on
+    # Apple Silicon and Intel Macs. Its maker settings are in macos/packaging.
     name: macOS (Apple Silicon + Intel)
     needs: verify
     runs-on: macos-15
@@ -91,21 +90,21 @@ jobs:
 
       - run: flutter pub get
 
-      - name: Build
-        run: flutter build macos --release
-
-      # Verifies the signature and that both architectures are present, then builds the drag-to-Applications DMG.
-      - name: Package DMG
-        env:
-          VERSION: ${{ needs.verify.outputs.version }}
+      - name: Install fastforge and appdmg
         run: |
-          packaging/macos/build-dmg.sh "$VERSION" \
-            "build/macos/Build/Products/Release/${APP_NAME}.app" dist
+          dart pub global activate fastforge
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+          npm install -g appdmg
+
+      - name: Build and package DMG and PKG
+        run: fastforge package --platform macos --targets dmg,pkg
 
       - uses: actions/upload-artifact@v4
         with:
           name: macos-universal
-          path: dist/*.dmg
+          path: |
+            dist/*/*.dmg
+            dist/*/*.pkg
           if-no-files-found: error
 
   windows:
@@ -113,8 +112,6 @@ jobs:
     needs: verify
     runs-on: windows-latest
     timeout-minutes: 45
-    env:
-      VERSION: ${{ needs.verify.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -126,56 +123,27 @@ jobs:
 
       - run: flutter pub get
 
-      - name: Build
-        run: flutter build windows --release
-
-      # Flutter apps need the Visual C++ runtime. Shipping the three DLLs next to the exe (app-local deployment)
-      # means the app starts even on a machine that never installed the redistributable.
-      - name: Bundle the Visual C++ runtime
+      - name: Install fastforge and Inno Setup
         shell: pwsh
         run: |
-          $out = "build/windows/x64/runner/Release"
-          foreach ($dll in "msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll") {
-            $src = Join-Path $env:SystemRoot "System32/$dll"
-            if (Test-Path $src) { Copy-Item $src $out -Force; Write-Host "bundled $dll" }
-            else { Write-Warning "$dll not found on this runner" }
-          }
+          dart pub global activate fastforge
+          "$env:LOCALAPPDATA\Pub\Cache\bin" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+          choco install innosetup --no-progress -y
 
-      - name: Build MSI (WiX)
+      - name: Build and package the installer and MSIX
         shell: pwsh
         run: |
-          dotnet tool install --global wix --version 4.0.5
-          $env:PATH += ";$env:USERPROFILE\.dotnet\tools"
-          New-Item -ItemType Directory -Force dist | Out-Null
-          # MSI versions are numeric (major.minor.build): drop a pre-release suffix such as -beta.1.
-          $msiVersion = ($env:VERSION -split '-')[0]
-          $build = (Resolve-Path "build/windows/x64/runner/Release").Path
-          $icon = (Resolve-Path "windows/runner/resources/app_icon.ico").Path
-          wix build packaging/windows/openrest.wxs -arch x64 `
-            -d "Version=$msiVersion" -d "BuildDir=$build" -d "IconPath=$icon" `
-            -o "dist/$env:APP_NAME-$env:VERSION-windows-x64.msi"
-          if ($LASTEXITCODE -ne 0) { throw "wix build failed with exit code $LASTEXITCODE" }
-          Get-ChildItem dist
-
-      - name: Check the MSI installs and uninstalls
-        shell: pwsh
-        run: |
-          $msi = (Get-ChildItem dist/*.msi | Select-Object -First 1).FullName
-          $exe = "$env:ProgramFiles\OpenRest\OpenRest.exe"
-          $p = Start-Process msiexec -ArgumentList "/i", "`"$msi`"", "/qn", "/l*v", "install.log" -Wait -PassThru
-          if ($p.ExitCode -ne 0) { Get-Content install.log -Tail 60; throw "install failed: $($p.ExitCode)" }
-          if (-not (Test-Path $exe)) { throw "OpenRest.exe was not installed to $exe" }
-          if (-not (Test-Path "$env:ProgramFiles\OpenRest\data\app.so")) { throw "data folder was not installed" }
-          Write-Host "installed OK"
-          $p = Start-Process msiexec -ArgumentList "/x", "`"$msi`"", "/qn", "/l*v", "uninstall.log" -Wait -PassThru
-          if ($p.ExitCode -ne 0) { Get-Content uninstall.log -Tail 60; throw "uninstall failed: $($p.ExitCode)" }
-          if (Test-Path $exe) { throw "OpenRest.exe is still there after uninstall" }
-          Write-Host "uninstalled OK"
+          # MSIX versions have four numbers: the pubspec version without a pre-release suffix, plus .0
+          $v = ("${{ needs.verify.outputs.version }}" -split '-')[0]
+          (Get-Content windows/packaging/msix/make_config.yaml) -replace '^msix_version:.*', "msix_version: $v.0" | Set-Content windows/packaging/msix/make_config.yaml
+          fastforge package --platform windows --targets exe,msix
 
       - uses: actions/upload-artifact@v4
         with:
           name: windows-x64
-          path: dist/*.msi
+          path: |
+            dist/*/*.exe
+            dist/*/*.msix
           if-no-files-found: error
 
   linux:
@@ -184,8 +152,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      VERSION: ${{ needs.verify.outputs.version }}
-      BUNDLE: build/linux/x64/release/bundle
+      # The runner has no FUSE; let appimagetool unpack itself instead.
+      APPIMAGE_EXTRACT_AND_RUN: "1"
     steps:
       - uses: actions/checkout@v4
 
@@ -195,57 +163,31 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
-      - name: Install Linux build dependencies
+      - name: Install Linux build and packaging dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
-
-      - run: flutter pub get
-
-      - name: Build
-        run: flutter build linux --release
-
-      - name: Package .deb
-        run: packaging/linux/build-deb.sh "$VERSION" "$BUNDLE" dist
-
-      - name: Check the .deb installs and starts linking
-        run: |
-          dpkg-deb --info dist/*.deb
-          dpkg-deb --contents dist/*.deb
-          sudo apt-get install -y ./dist/*.deb
-          test -x /usr/bin/openrest
-          # Every shared library the app needs must resolve after a normal install.
-          if ldd /opt/openrest/OpenRest | grep "not found"; then
-            echo "::error::the installed app has unresolved shared libraries"
-            exit 1
-          fi
-
-      - name: Package .rpm
-        run: |
-          sudo apt-get install -y rpm
-          sudo gem install --no-document fpm
-          packaging/linux/build-rpm.sh "$VERSION" "$BUNDLE" dist
-          rpm -qpi dist/*.rpm
-          rpm -qpl dist/*.rpm
-          rpm -qpR dist/*.rpm
-
-      - name: Package AppImage
-        env:
-          # The runner has no FUSE; let the tool unpack itself instead.
-          APPIMAGE_EXTRACT_AND_RUN: "1"
-        run: |
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev rpm patchelf locate
           sudo curl -fsSL -o /usr/local/bin/appimagetool \
             https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           sudo chmod +x /usr/local/bin/appimagetool
-          packaging/linux/build-appimage.sh "$VERSION" "$BUNDLE" dist
+
+      - run: flutter pub get
+
+      - name: Install fastforge
+        run: |
+          dart pub global activate fastforge
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
+      - name: Build and package deb, rpm and AppImage
+        run: fastforge package --platform linux --targets deb,rpm,appimage
 
       - uses: actions/upload-artifact@v4
         with:
           name: linux-x64
           path: |
-            dist/*.deb
-            dist/*.rpm
-            dist/*.AppImage
+            dist/*/*.deb
+            dist/*/*.rpm
+            dist/*/*.AppImage
           if-no-files-found: error
 
   release:

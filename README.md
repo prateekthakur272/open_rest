@@ -31,13 +31,19 @@ Releases are built by GitHub Actions (`.github/workflows/release.yml`).
 3. The workflow checks that the tag matches `pubspec.yaml`, runs analyze and the tests, builds every platform and
    publishes a GitHub Release with these files and `SHA256SUMS.txt`:
 
-   | File | Platform |
+   | File (under the version folder) | Platform |
    | --- | --- |
-   | `OpenRest-<version>-macos-universal.dmg` | macOS, Apple Silicon and Intel: open it and drag OpenRest to Applications |
-   | `OpenRest-<version>-windows-x64.msi` | Windows 10/11 installer: installs to Program Files with a Start menu entry; uninstall from Settings. Silent install: `msiexec /i OpenRest-<version>-windows-x64.msi /qn` |
-   | `OpenRest-<version>-linux-amd64.deb` | Debian / Ubuntu: `sudo apt install ./OpenRest-<version>-linux-amd64.deb` |
-   | `OpenRest-<version>-linux-x86_64.rpm` | Fedora / RHEL / openSUSE: `sudo dnf install ./OpenRest-<version>-linux-x86_64.rpm` |
-   | `OpenRest-<version>-linux-x86_64.AppImage` | Any x86-64 Linux: `chmod +x` it and run it |
+   | `open_rest-<version>-macos.dmg` | macOS, Apple Silicon and Intel: open it and drag OpenRest to Applications |
+   | `open_rest-<version>-macos.pkg` | macOS installer package (unsigned): installs OpenRest into Applications |
+   | `open_rest-<version>-windows-setup.exe` | Windows 10/11 installer (Inno Setup) with a Start menu entry |
+   | `open_rest-<version>-windows.msix` | Windows 10/11 MSIX package (unsigned: sign it with your own certificate to sideload it) |
+   | `open_rest-<version>-linux.deb` | Debian / Ubuntu: `sudo apt install ./open_rest-<version>-linux.deb` |
+   | `open_rest-<version>-linux.rpm` | Fedora / RHEL / openSUSE: `sudo dnf install ./open_rest-<version>-linux.rpm` |
+   | `open_rest-<version>-linux.AppImage` | Any x86-64 Linux: `chmod +x` it and run it |
+
+   Installers are built with [fastforge](https://fastforge.dev) (`fastforge package --platform <os> --targets <target>`);
+   their settings live next to each platform, in `macos|windows|linux/packaging/<target>/make_config.yaml`. To build one
+   locally, run `dart pub global activate fastforge` and the same command (the DMG also needs `npm install -g appdmg`).
 
 A tag with a suffix (`v2.1.0-beta.1`) is published as a pre-release. To try the build without publishing, run the
 **Release** workflow by hand from the Actions tab. The macOS app is ad-hoc signed, not notarised, so on first launch
