@@ -162,6 +162,15 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Non-null when a newer GitHub release has been detected.
+  /// Shown as a persistent icon button in the status bar.
+  String? _availableUpdate;
+  String? get availableUpdate => _availableUpdate;
+  set availableUpdate(String? v) {
+    _availableUpdate = v;
+    notifyListeners();
+  }
+
   late final StateMap<String, bool> expanded = StateMap<String, bool>(
     notifyListeners,
   );

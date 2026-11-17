@@ -1,4 +1,6 @@
 // ignore_for_file: constant_identifier_names, non_constant_identifier_names, deprecated_member_use
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart' hide Chip, ThemeMode;
 import 'package:open_rest/utils/app_config.dart';
@@ -12,6 +14,7 @@ import 'package:open_rest/platform/platform.dart';
 import 'package:open_rest/theme/icons.dart';
 import 'package:open_rest/theme/theme.dart';
 import 'package:open_rest/utils/app_metadata.dart';
+import 'package:open_rest/utils/update_checker.dart';
 
 /// A keyboard shortcut. [primary] is ⌘ on a Mac and Ctrl elsewhere; [control] is the literal Control key (used for tab switching).
 class Shortcut {
@@ -407,6 +410,8 @@ class AppMenus {
       }),
       item('Developer…', () => state.modal = const ModalDeveloper()),
       item('Show Data Folder', () => Platform.reveal(AppStore.dir)),
+      const MenuSeparator(),
+      item('Check for Updates…', () => _checkForUpdates(state)),
       if (!isMac) ...[
         const MenuSeparator(),
         item('About ${AppConfig.NAME}', () => state.modal = const ModalAbout()),
@@ -470,5 +475,97 @@ class AboutDialog extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Update-available helpers
+// ---------------------------------------------------------------------------
+
+/// Triggers a manual update check from the Help menu.
+/// Shows a "no updates" toast on the same thread so the user gets feedback.
+void _checkForUpdates(AppState state) {
+  unawaited(_doCheckForUpdates(state));
+}
+
+Future<void> _doCheckForUpdates(AppState state) async {
+  // Clear any prior dismissal so a manual check always re-fetches.
+  await UpdateChecker.clearDismissed();
+  final result = await UpdateChecker.check(AppMetadata.version);
+  if (result.failed) {
+    // Not "up to date": the check did not run, so leave the status-bar icon as it is.
+    state.toast = "Couldn't check for updates: ${result.error}";
+  } else if (result.hasUpdate) {
+    state.availableUpdate = result.version;
+    state.modal = ModalUpdateAvailable(version: result.version!);
+  } else {
+    state.availableUpdate = null;
+    state.toast = '${AppConfig.NAME} is up to date (${AppMetadata.version})';
+  }
+}
+
+/// Dialog shown when a newer GitHub release is detected.
+class UpdateAvailableDialog extends StatelessWidget {
+  const UpdateAvailableDialog({
+    super.key,
+    required this.state,
+    required this.version,
+  });
+
+  final AppState state;
+  final String version;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    return ModalBox(
+      title: 'Update Available',
+      onClose: _dismiss,
+      width: 420,
+      actions: [
+        Btn(label: 'Later', onClick: _dismiss),
+        Btn(
+          label: 'Download $version',
+          primary: true,
+          onClick: () {
+            state.modal = null;
+            state.availableUpdate = null;
+            unawaited(Platform.openUrl(AppConfig.RELEASES_URL));
+          },
+        ),
+      ],
+      content: [
+        Row(
+          spacing: 10,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Ico(Ic.logo, tint: p.accent, size: 32),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 6,
+                children: [
+                  T(
+                    'Version $version is now available',
+                    weight: FontWeight.w600,
+                  ),
+                  T(
+                    'You are running ${AppMetadata.version}. '
+                    'Visit the GitHub releases page to download the latest build.',
+                    color: p.muted,
+                    size: 12,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _dismiss() {
+    state.modal = null;
+    unawaited(UpdateChecker.dismissVersion(version));
   }
 }

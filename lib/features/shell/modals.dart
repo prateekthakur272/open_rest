@@ -66,5 +66,9 @@ class Modals extends StatelessWidget {
     ModalExport() => ExportDialog(state: state, m: m),
     ModalPalette() => Palette(state: state),
     ModalOnboarding() => OnboardingDialog(state: state),
+    ModalUpdateAvailable() => UpdateAvailableDialog(
+      state: state,
+      version: m.version,
+    ),
   };
 }

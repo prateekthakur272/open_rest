@@ -957,6 +957,19 @@ class _StatusBar extends StatelessWidget {
                   color: p.muted,
                   size: 15,
                 ),
+                if (state.availableUpdate != null)
+                  Tooltip(
+                    message:
+                        'Update available: ${state.availableUpdate}  —  click to download',
+                    child: IconBtn(
+                      icon: Ic.download,
+                      onClick: () => state.modal = ModalUpdateAvailable(
+                        version: state.availableUpdate!,
+                      ),
+                      color: p.accent,
+                      size: 15,
+                    ),
+                  ),
                 IconBtn(
                   icon: Ic.gitHub,
                   onClick: () => state.modal = const ModalDeveloper(),

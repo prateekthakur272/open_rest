@@ -313,6 +313,45 @@ class AppStore {
     );
   }
 
+  static String get _prefsFile => p.join(dir, 'prefs.json');
+
+  /// Reads `prefs.json`; empty when it is missing or unreadable (a bad file never stops the app).
+  static Map<String, dynamic> _loadFlags() {
+    try {
+      return Map<String, dynamic>.of(
+        Json.obj(Json.parse(File(_prefsFile).readAsStringSync())) ??
+            const <String, dynamic>{},
+      );
+    } catch (_) {
+      if (_exists(_prefsFile)) {
+        Log.warning(_tag, 'Cannot read prefs.json, starting empty');
+      }
+      return <String, dynamic>{};
+    }
+  }
+
+  /// A small named value the app remembers that is neither a user setting nor window / session state, for
+  /// example the update version the user dismissed. They live in `prefs.json` in the data folder (not in the
+  /// platform's preference store), so everything the app keeps is in one place the user can see and delete.
+  static Object? flag(String key) => _loadFlags()[key];
+
+  /// [flag] when it holds a string, else null.
+  static String? flagString(String key) {
+    final v = flag(key);
+    return v is String ? v : null;
+  }
+
+  /// Saves a flag; a null [value] removes it. Other flags are kept.
+  static void setFlag(String key, Object? value) {
+    final m = _loadFlags();
+    if (value == null) {
+      if (m.remove(key) == null && !_exists(_prefsFile)) return;
+    } else {
+      m[key] = value;
+    }
+    _writeFile(_prefsFile, Json.stringify(m, pretty: true));
+  }
+
   static String get _windowFile => p.join(dir, 'window.json');
 
   static WindowGeometry? loadWindow() {

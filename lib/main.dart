@@ -14,6 +14,7 @@ import 'package:open_rest/features/shell/menus.dart';
 import 'package:open_rest/features/shell/window_chrome.dart';
 import 'package:open_rest/platform/platform.dart';
 import 'package:open_rest/theme/theme.dart';
+import 'package:open_rest/utils/update_checker.dart';
 import 'package:window_manager/legacy.dart' as wm;
 
 /// True when the saved window would still show a usable part of a connected screen (a monitor may have been unplugged since).
@@ -134,6 +135,23 @@ class _OpenRestRootState extends State<OpenRestRoot>
     WidgetsBinding.instance.addObserver(this);
     HardwareKeyboard.instance.addHandler(_onKey);
     wm.windowManager.addListener(this);
+    // Check for a newer GitHub release after the first frame so it never
+    // delays startup. The result is shown only when the user is not already
+    // looking at a dialog (e.g. the first-run onboarding).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkForUpdateOnce());
+  }
+
+  Future<void> _checkForUpdateOnce() async {
+    final result = await UpdateChecker.check(AppMetadata.version);
+    if (!mounted) return;
+    if (result.hasUpdate) {
+      // Always show the icon — even if this version was previously dismissed.
+      state.availableUpdate = result.version;
+      // Only pop the dialog when the user hasn't already dismissed this version.
+      if (result.shouldShowDialog && state.modal == null) {
+        state.modal = ModalUpdateAvailable(version: result.version!);
+      }
+    }
   }
 
   @override

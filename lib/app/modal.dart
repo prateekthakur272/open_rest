@@ -322,3 +322,17 @@ class ModalPalette extends Modal {
   @override
   int get hashCode => 9;
 }
+
+/// Update-available announcement.
+class ModalUpdateAvailable extends Modal {
+  const ModalUpdateAvailable({required this.version});
+
+  /// The newer version string fetched from GitHub (e.g. `"2.2.0"`).
+  final String version;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ModalUpdateAvailable && other.version == version;
+  @override
+  int get hashCode => Object.hash('update', version);
+}

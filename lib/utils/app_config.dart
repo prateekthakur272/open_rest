@@ -22,4 +22,11 @@ final class AppConfig {
       'https://prateekthakur272.github.io/github-marketplace/';
   static const String TAGLINE =
       'An open, file-based API client — requests, environments and workflows that live in plain folders.';
+
+  /// GitHub Releases page — opened when the user clicks "Download" in the update dialog.
+  static const String RELEASES_URL = '$HOMEPAGE/releases/latest';
+
+  /// GitHub REST API endpoint for the latest release — used by [UpdateChecker].
+  static const String RELEASES_API_URL =
+      'https://api.github.com/repos/prateekthakur272/open_rest/releases/latest';
 }
