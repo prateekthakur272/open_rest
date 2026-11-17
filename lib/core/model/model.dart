@@ -4,6 +4,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show listEquals, mapEquals, setEquals;
 import 'package:open_rest/core/run/workflow_model.dart';
+import 'package:open_rest/utils/app_config.dart';
+import 'package:open_rest/utils/app_metadata.dart';
 
 const Object _unset = Object();
 
@@ -1138,10 +1140,23 @@ class AppSettings {
   final bool proxyEnabled;
   final String proxyHost;
   final int proxyPort;
+
+  /// A custom User-Agent; empty means "use the default" ([defaultUserAgent]). Read it through [effectiveUserAgent].
   final String userAgent;
   final bool verticalLayout;
   final int fontSize;
   final bool autoSave;
+
+  /// What older versions saved as the default User-Agent; read back as "unset" so it follows the real version.
+  static const String legacyUserAgent = 'OpenRest/1.0';
+
+  /// `OpenRest/2.1.0`: the app name and the version read at startup.
+  static String get defaultUserAgent =>
+      '${AppConfig.NAME}/${AppMetadata.version}';
+
+  /// The User-Agent to send: the custom one, or [defaultUserAgent] when none is set.
+  String get effectiveUserAgent =>
+      userAgent.trim().isEmpty ? defaultUserAgent : userAgent.trim();
 
   const AppSettings({
     this.theme = ThemeMode.System,
@@ -1152,7 +1167,7 @@ class AppSettings {
     this.proxyEnabled = false,
     this.proxyHost = '',
     this.proxyPort = 8080,
-    this.userAgent = 'OpenRest/1.0',
+    this.userAgent = '',
     this.verticalLayout = true,
     this.fontSize = 13,
     this.autoSave = false,

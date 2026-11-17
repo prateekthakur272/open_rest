@@ -1,6 +1,7 @@
 // ignore_for_file: constant_identifier_names, non_constant_identifier_names, deprecated_member_use
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart' hide Chip, ThemeMode;
+import 'package:open_rest/utils/app_config.dart';
 import 'package:open_rest/app/app_state.dart';
 import 'package:open_rest/components/buttons.dart';
 import 'package:open_rest/components/layout.dart';
@@ -10,45 +11,7 @@ import 'package:open_rest/core/storage/storage.dart';
 import 'package:open_rest/platform/platform.dart';
 import 'package:open_rest/theme/icons.dart';
 import 'package:open_rest/theme/theme.dart';
-
-/// What the app module knows about the app, like Android's `applicationId` and `versionName`.
-class AppMetadata {
-  const AppMetadata({
-    this.name = 'OpenRest',
-    this.bundleId = '',
-    this.version = 'dev',
-    this.vendor = '',
-    this.description = '',
-    this.homepage = '',
-    this.developerUrl = '',
-  });
-
-  final String name;
-  final String bundleId;
-  final String version;
-  final String vendor;
-  final String description;
-  final String homepage;
-  final String developerUrl;
-}
-
-/// Application name, version and credits shown in the About dialog.
-class AppInfo {
-  AppInfo._();
-
-  /// Set once at startup by the app module. The defaults are what tests and previews see.
-  static AppMetadata meta = const AppMetadata();
-
-  static String get NAME => meta.name;
-  static String get BUNDLE_ID => meta.bundleId;
-  static String get VERSION => meta.version;
-  static String get VENDOR => meta.vendor;
-  static String get DESCRIPTION => meta.description;
-  static String get HOMEPAGE => meta.homepage;
-  static String get DEVELOPER_URL => meta.developerUrl;
-  static const String TAGLINE =
-      'An open, file-based API client — requests, environments and workflows that live in plain folders.';
-}
+import 'package:open_rest/utils/app_metadata.dart';
 
 /// A keyboard shortcut. [primary] is ⌘ on a Mac and Ctrl elsewhere; [control] is the literal Control key (used for tab switching).
 class Shortcut {
@@ -446,7 +409,7 @@ class AppMenus {
       item('Show Data Folder', () => Platform.reveal(AppStore.dir)),
       if (!isMac) ...[
         const MenuSeparator(),
-        item('About ${AppInfo.NAME}', () => state.modal = const ModalAbout()),
+        item('About ${AppConfig.NAME}', () => state.modal = const ModalAbout()),
       ],
     ]);
 
@@ -463,7 +426,7 @@ class AboutDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.pal;
     return ModalBox(
-      title: 'About ${AppInfo.NAME}',
+      title: 'About ${AppConfig.NAME}',
       onClose: () => state.modal = null,
       width: 440,
       actions: [
@@ -479,16 +442,16 @@ class AboutDialog extends StatelessWidget {
               spacing: 6,
               children: [
                 Ico(Ic.logo, tint: p.accent, size: 56),
-                T(AppInfo.NAME, size: 22, weight: FontWeight.w700),
-                T('Version ${AppInfo.VERSION}', color: p.muted, size: 12),
-                if (AppInfo.VENDOR.trim().isNotEmpty)
-                  T('by ${AppInfo.VENDOR}', color: p.muted, size: 12),
+                T(AppConfig.NAME, size: 22, weight: FontWeight.w700),
+                T('Version ${AppMetadata.version}', color: p.muted, size: 12),
+                if (AppConfig.VENDOR.trim().isNotEmpty)
+                  T('by ${AppConfig.VENDOR}', color: p.muted, size: 12),
                 const SizedBox(height: 6),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: DefaultTextStyle.merge(
                     textWidthBasis: TextWidthBasis.longestLine,
-                    child: T(AppInfo.TAGLINE, color: p.muted, size: 12),
+                    child: T(AppConfig.TAGLINE, color: p.muted, size: 12),
                   ),
                 ),
                 const SizedBox(height: 6),

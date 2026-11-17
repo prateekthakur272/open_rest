@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' show SingleActivator;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:open_rest/utils/app_config.dart';
 import 'package:open_rest/app/app_state.dart';
 import 'package:open_rest/core/model/model.dart';
 import 'package:open_rest/features/shell/menus.dart';
@@ -196,23 +197,10 @@ void main() {
     },
   );
 
-  test('app info is filled in by the app module', () {
-    final before = AppInfo.meta;
-    try {
-      expect(AppInfo.NAME, 'OpenRest');
-      expect(AppInfo.VERSION, 'dev');
-      AppInfo.meta = const AppMetadata(
-        name: 'Demo',
-        bundleId: 'x.y',
-        version: '2.3.4',
-        vendor: 'V',
-      );
-      expect(AppInfo.NAME, 'Demo');
-      expect(AppInfo.BUNDLE_ID, 'x.y');
-      expect(AppInfo.VERSION, '2.3.4');
-      expect(AppInfo.VENDOR, 'V');
-    } finally {
-      AppInfo.meta = before;
-    }
+  test('app config is a set of constants', () {
+    expect(AppConfig.NAME, 'OpenRest');
+    expect(AppConfig.VENDOR, 'Prateek Thakur');
+    expect(AppConfig.HOMEPAGE, startsWith('https://github.com/'));
+    expect(AppConfig.TAGLINE, isNotEmpty);
   });
 }

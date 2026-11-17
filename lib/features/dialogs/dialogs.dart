@@ -1,19 +1,13 @@
-import 'dart:io';
-
 import 'package:flutter/widgets.dart';
 import 'package:open_rest/app/app_state.dart';
 import 'package:open_rest/components/buttons.dart';
 import 'package:open_rest/components/field.dart';
 import 'package:open_rest/components/layout.dart';
 import 'package:open_rest/components/text.dart';
-import 'package:path/path.dart' as p;
+import 'package:open_rest/utils/paths.dart';
 
 /// `~/OpenRest`: where new collections are created by default.
-String get defaultDir {
-  final home =
-      Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'] ?? '';
-  return p.join(home, 'OpenRest');
-}
+String get defaultDir => Paths.defaultCollectionsDir;
 
 /// Dialog that asks for a single text value.
 class PromptDialog extends StatefulWidget {

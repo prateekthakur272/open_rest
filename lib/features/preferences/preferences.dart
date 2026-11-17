@@ -1,5 +1,6 @@
 // ignore_for_file: constant_identifier_names, non_constant_identifier_names, deprecated_member_use
 import 'package:flutter/widgets.dart';
+import 'package:open_rest/utils/app_config.dart';
 import 'package:open_rest/components/segmented.dart';
 import 'package:open_rest/app/app_state.dart';
 import 'package:open_rest/components/buttons.dart';
@@ -14,7 +15,7 @@ import 'package:open_rest/platform/platform.dart';
 import 'package:open_rest/theme/theme.dart';
 
 enum _Section {
-  General('General', 'How OpenRest behaves day to day.'),
+  General('General', 'How ${AppConfig.NAME} behaves day to day.'),
   Appearance('Appearance', 'Theme, size and layout.'),
   Requests('Requests', 'Defaults applied to every request you send.'),
   Network('Network', 'Certificates and cookies.'),
@@ -23,7 +24,7 @@ enum _Section {
     'Shortcuts',
     'Keyboard shortcuts. Use Ctrl instead of ⌘ on Windows and Linux.',
   ),
-  Data('Data', 'Where OpenRest keeps your files.');
+  Data('Data', 'Where ${AppConfig.NAME} keeps your files.');
 
   const _Section(this.label, this.blurb);
   final String label;
@@ -331,10 +332,11 @@ class _PreferencesDialogState extends State<PreferencesDialog> {
           child: Field(
             value: s.userAgent,
             onChange: (v) => set(s.copyWith(userAgent: v)),
+            placeholder: AppSettings.defaultUserAgent,
             highlightVars: false,
           ),
         ),
-        desc: 'Sent with every request unless the request sets its own.',
+        desc: 'Sent with every request unless the request sets its own. Leave empty for the default.',
       ),
       _Pref(
         _Section.Network,

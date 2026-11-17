@@ -4,6 +4,8 @@ import 'dart:ui' show PlatformDispatcher;
 
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart' hide Chip, ThemeMode;
+import 'package:open_rest/utils/app_config.dart';
+import 'package:open_rest/utils/app_metadata.dart';
 import 'package:open_rest/app/app_state.dart';
 import 'package:open_rest/core/logging/log.dart';
 import 'package:open_rest/core/storage/storage.dart';
@@ -41,15 +43,7 @@ bool _positionVisible(WindowGeometry? g) =>
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  AppInfo.meta = const AppMetadata(
-    name: 'OpenRest',
-    bundleId: 'dev.prateekthakur.openrest',
-    version: '1.0.0',
-    vendor: 'Prateek Thakur',
-    description: 'An open, file-based API client: requests, environments and workflows that live in plain folders.',
-    homepage: 'https://github.com/prateekthakur272/open_rest',
-    developerUrl: 'https://github.com/prateekthakur272',
-  );
+  await AppMetadata.load();
   final isMac = Platform.isMac;
   await Platform.init();
   await wm.windowManager.ensureInitialized();
@@ -65,7 +59,7 @@ Future<void> main() async {
           : const Size(1360, 860),
       minimumSize: const Size(760, 480),
       center: !placed,
-      title: AppInfo.NAME,
+      title: AppConfig.NAME,
       titleBarStyle: wm.TitleBarStyle.hidden,
       windowButtonVisibility: isMac,
     ),
@@ -308,12 +302,12 @@ class _OpenRestRootState extends State<OpenRestRoot>
     }
 
     final app = PlatformMenu(
-      label: AppInfo.NAME,
+      label: AppConfig.NAME,
       menus: [
         PlatformMenuItemGroup(
           members: [
             PlatformMenuItem(
-              label: 'About ${AppInfo.NAME}',
+              label: 'About ${AppConfig.NAME}',
               onSelected: () => state.modal = const ModalAbout(),
             ),
           ],
@@ -351,7 +345,7 @@ class _OpenRestRootState extends State<OpenRestRoot>
         PlatformMenuItemGroup(
           members: [
             PlatformMenuItem(
-              label: 'Quit ${AppInfo.NAME}',
+              label: 'Quit ${AppConfig.NAME}',
               shortcut: const SingleActivator(
                 LogicalKeyboardKey.keyQ,
                 meta: true,
@@ -378,7 +372,7 @@ class _OpenRestRootState extends State<OpenRestRoot>
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: AppInfo.NAME,
+      title: AppConfig.NAME,
       theme: OpenRestTheme.data(dark),
       scrollBehavior: const _DesktopScrollBehavior(),
       builder: (context, child) => AppScope(

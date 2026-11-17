@@ -1,9 +1,9 @@
 import 'package:flutter/widgets.dart';
+import 'package:open_rest/utils/app_config.dart';
 import 'package:open_rest/app/app_state.dart';
 import 'package:open_rest/components/buttons.dart';
 import 'package:open_rest/components/layout.dart';
 import 'package:open_rest/components/text.dart';
-import 'package:open_rest/features/shell/menus.dart';
 import 'package:open_rest/platform/platform.dart';
 import 'package:open_rest/theme/icons.dart';
 import 'package:open_rest/theme/theme.dart';
@@ -46,19 +46,21 @@ class DeveloperDialog extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  T(AppInfo.VENDOR, size: 18, weight: FontWeight.w700),
-                  T('Developer of ${AppInfo.NAME}', color: p.muted),
+                  T(AppConfig.VENDOR, size: 18, weight: FontWeight.w700),
+                  T('Developer of ${AppConfig.NAME}', color: p.muted),
                 ],
               ),
             ],
           ),
         ),
-        if (AppInfo.DEVELOPER_URL.trim().isNotEmpty)
-          _LinkRow(label: 'Profile', url: AppInfo.DEVELOPER_URL),
-        if (AppInfo.HOMEPAGE.trim().isNotEmpty)
-          _LinkRow(label: 'Project repository', url: AppInfo.HOMEPAGE),
+        if (AppConfig.DEVELOPER_URL.trim().isNotEmpty)
+          _LinkRow(label: 'Profile', url: AppConfig.DEVELOPER_URL),
+        if (AppConfig.HOMEPAGE.trim().isNotEmpty)
+          _LinkRow(label: 'Project repository', url: AppConfig.HOMEPAGE),
+        if (AppConfig.MORE_APPS_URL.trim().isNotEmpty)
+          _LinkRow(label: 'Explore more apps', url: AppConfig.MORE_APPS_URL),
         T(
-          'OpenRest is built in the open. Bug reports, ideas and pull requests are welcome on GitHub.',
+          '${AppConfig.NAME} is built in the open. Bug reports, ideas and pull requests are welcome on GitHub.',
           color: p.muted,
           size: 12,
         ),

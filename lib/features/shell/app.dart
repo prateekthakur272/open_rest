@@ -9,6 +9,7 @@ import 'package:flutter/gestures.dart'
         HorizontalDragGestureRecognizer;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:open_rest/utils/app_config.dart';
 import 'package:open_rest/app/app_state.dart';
 import 'package:open_rest/components/buttons.dart';
 import 'package:open_rest/components/context_menu.dart';
@@ -451,7 +452,7 @@ class _TitleBar extends StatelessWidget {
                   if (col != null) col.name,
                   if (tab != null) tab.title,
                 ].join('  ›  ');
-                final title = where.isEmpty ? AppInfo.NAME : where;
+                final title = where.isEmpty ? AppConfig.NAME : where;
                 return Stack(
                   children: [
                     Positioned.fill(
@@ -530,7 +531,7 @@ class _TopBar extends StatelessWidget {
               Ico(Ic.logo, tint: p.accent, size: 24),
               const Padding(
                 padding: EdgeInsets.only(right: 14),
-                child: T('OpenRest', weight: FontWeight.w700, size: 15),
+                child: T(AppConfig.NAME, weight: FontWeight.w700, size: 15),
               ),
               if (col != null) ...[
                 Clickable(
@@ -1088,7 +1089,7 @@ class _Welcome extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Ico(Ic.logo, tint: p.accent, size: 56),
-              const T('OpenRest', size: 28, weight: FontWeight.w700),
+              const T(AppConfig.NAME, size: 28, weight: FontWeight.w700),
               const SizedBox(height: 4),
               T(
                 'Open-source API client — collections are plain files on disk.',

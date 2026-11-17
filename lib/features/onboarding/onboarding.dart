@@ -1,4 +1,5 @@
 // ignore_for_file: constant_identifier_names, non_constant_identifier_names, deprecated_member_use
+import 'package:open_rest/utils/app_config.dart';
 import 'package:open_rest/components/modifiers.dart';
 import 'package:flutter/widgets.dart';
 import 'package:open_rest/app/app_state.dart';
@@ -6,7 +7,6 @@ import 'package:open_rest/components/buttons.dart';
 import 'package:open_rest/components/layout.dart';
 import 'package:open_rest/components/text.dart';
 import 'package:open_rest/core/model/model.dart';
-import 'package:open_rest/features/shell/menus.dart';
 import 'package:open_rest/platform/platform.dart';
 import 'package:open_rest/theme/icons.dart';
 import 'package:open_rest/theme/theme.dart';
@@ -40,7 +40,7 @@ class _OnboardingDialogState extends State<OnboardingDialog> {
     final step = steps[index];
     final last = index == steps.length - 1;
     return ModalBox(
-      title: 'Welcome to ${AppInfo.NAME}',
+      title: 'Welcome to ${AppConfig.NAME}',
       onClose: () => state.finishOnboarding(),
       width: 640,
       height: 520,
@@ -153,12 +153,12 @@ class _Welcome extends StatelessWidget {
       spacing: 10,
       children: [
         Ico(Ic.logo, tint: p.accent, size: 64),
-        T(AppInfo.NAME, size: 28, weight: FontWeight.w700),
+        T(AppConfig.NAME, size: 28, weight: FontWeight.w700),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: DefaultTextStyle.merge(
             textWidthBasis: TextWidthBasis.longestLine,
-            child: T(AppInfo.TAGLINE, color: p.muted, size: 14),
+            child: T(AppConfig.TAGLINE, color: p.muted, size: 14),
           ),
         ),
         const SizedBox(height: 10),

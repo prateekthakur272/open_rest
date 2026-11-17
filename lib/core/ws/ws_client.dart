@@ -101,7 +101,7 @@ class WsConnection {
       if (jar != null) headers['Cookie'] = jar;
     }
     if (!headers.keys.any((k) => k.toLowerCase() == 'user-agent')) {
-      headers['User-Agent'] = settings.userAgent;
+      headers['User-Agent'] = settings.effectiveUserAgent;
     }
     final timeout = t.timeoutMs > 0 ? t.timeoutMs : settings.timeoutMs;
     try {

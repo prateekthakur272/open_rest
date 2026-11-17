@@ -34,6 +34,7 @@ Future<HttpServer> echoServer(
     seen.add({
       'x-test': req.headers.value('x-test') ?? '',
       'authorization': req.headers.value('authorization') ?? '',
+      'user-agent': req.headers.value('user-agent') ?? '',
       'protocol': req.headers.value('sec-websocket-protocol') ?? '',
       'path': req.uri.toString(),
     });
@@ -150,6 +151,7 @@ void main() {
       await until(() => ws.isOpen);
       expect(ws.protocol, 'v1');
       expect(seen.single['x-test'], 'hello-${srv.port}');
+      expect(seen.single['user-agent'], AppSettings.defaultUserAgent);
       expect(seen.single['protocol'], 'v1, v2');
       expect(seen.single['path'], '/chat?room=1');
 

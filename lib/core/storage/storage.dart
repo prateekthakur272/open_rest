@@ -6,6 +6,7 @@ import 'package:open_rest/core/logging/log.dart';
 import 'package:open_rest/core/model/model.dart';
 import 'package:open_rest/core/run/workflow_storage.dart';
 import 'package:open_rest/utils/json.dart';
+import 'package:open_rest/utils/paths.dart';
 import 'package:open_rest/utils/yml.dart';
 import 'package:path/path.dart' as p;
 
@@ -155,14 +156,10 @@ class AppStore {
     if (homeOverride != null) {
       d = homeOverride!;
     } else {
-      final env = Platform.environment;
-      final home = Platform.isWindows
-          ? (env['USERPROFILE'] ?? env['HOME'] ?? '')
-          : (env['HOME'] ?? env['USERPROFILE'] ?? '');
-      d = p.join(home, '.openrest');
+      d = Paths.dataDir;
     }
     Directory(d).createSync(recursive: true);
-    Log.writeTo(p.join(d, 'openrest.log'));
+    Log.writeTo(Paths.logFile(d));
     _dirCache = d;
     _dirCacheKey = key;
     return d;
@@ -209,7 +206,11 @@ class AppStore {
         proxyEnabled: b('proxyEnabled') ?? d.proxyEnabled,
         proxyHost: s('proxyHost') ?? d.proxyHost,
         proxyPort: i('proxyPort') ?? d.proxyPort,
-        userAgent: s('userAgent') ?? d.userAgent,
+        // The old saved default is treated as "not customised", so it follows the real version from now on.
+        userAgent: switch (s('userAgent')) {
+          null || AppSettings.legacyUserAgent => d.userAgent,
+          final ua => ua,
+        },
         verticalLayout: b('verticalLayout') ?? d.verticalLayout,
         fontSize: i('fontSize') ?? d.fontSize,
         autoSave: b('autoSave') ?? d.autoSave,

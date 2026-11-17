@@ -3,6 +3,7 @@ import 'dart:io' as io;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:open_rest/core/logging/log.dart';
+import 'package:open_rest/utils/paths.dart';
 import 'package:path/path.dart' as p;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -100,12 +101,7 @@ class Platform {
     bool browser = false,
   }) async {
     try {
-      final f = io.File(
-        p.join(
-          io.Directory.systemTemp.path,
-          'openrest-${DateTime.now().microsecondsSinceEpoch}$ext',
-        ),
-      );
+      final f = io.File(Paths.tempFile(ext));
       await f.writeAsBytes(bytes);
       if (browser) {
         await launchUrl(Uri.file(f.path), mode: LaunchMode.externalApplication);

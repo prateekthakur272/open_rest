@@ -514,7 +514,7 @@ class HttpExecutor {
         } catch (_) {}
       }
       if (!names.contains('user-agent')) {
-        request.headers.set('User-Agent', settings.userAgent);
+        request.headers.set('User-Agent', settings.effectiveUserAgent);
       }
       if (!names.contains('accept')) request.headers.set('Accept', '*/*');
       if (!names.contains('accept-encoding')) {

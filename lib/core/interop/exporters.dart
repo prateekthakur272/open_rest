@@ -5,6 +5,7 @@ import 'package:open_rest/core/codegen/code_gen.dart';
 import 'package:open_rest/core/http/http.dart';
 import 'package:open_rest/core/interop/importers.dart';
 import 'package:open_rest/core/model/model.dart';
+import 'package:open_rest/utils/app_config.dart';
 import 'package:open_rest/core/storage/storage.dart';
 import 'package:open_rest/utils/bru.dart';
 import 'package:open_rest/utils/json.dart';
@@ -280,7 +281,9 @@ class Exporters {
 
   static String _curlScript(Collection c) {
     final sb = StringBuffer();
-    sb.write('#!/usr/bin/env bash\n# ${c.name} — exported from OpenRest\n');
+    sb.write(
+      '#!/usr/bin/env bash\n# ${c.name} — exported from ${AppConfig.NAME}\n',
+    );
     for (final k in _baseVars(c)) {
       sb.write(
         "${k.name.replaceAll(RegExp(r'[^A-Za-z0-9_]'), '_')}='${k.value.replaceAll("'", "'\\''")}'\n",
