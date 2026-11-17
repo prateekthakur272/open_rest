@@ -3,10 +3,12 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart' as crypto;
+import 'package:open_rest/core/http/generated_headers.dart';
 import 'package:open_rest/core/http/http.dart';
 import 'package:open_rest/core/model/model.dart';
 import 'package:open_rest/core/run/workflow_engine.dart';
 import 'package:open_rest/core/script/script.dart';
+import 'package:open_rest/core/ws/ws_client.dart' show parseProtocols;
 import 'package:open_rest/utils/json.dart';
 
 class RunCtx {
@@ -321,6 +323,86 @@ class Execution {
   }
 
   /// Build the final request: interpolate everything and apply auth.
+  /// What is sent besides the headers written on the request and the ones it inherits: the auth header, the body's
+  /// Content-Type / Content-Length and what the HTTP client adds itself (Host, User-Agent, Accept, cookies ...).
+  /// For showing in the Headers tab; nothing is sent or fetched, so a value that only exists at send time (an OAuth
+  /// token, a multipart boundary) says so.
+  List<GeneratedHeader> generatedHeaders(AppSettings settings) {
+    final view = initialView();
+    final out = <GeneratedHeader>[];
+    final names = {for (final k in view.headers.keys) interp(k).toLowerCase()};
+
+    final a = effectiveAuth();
+    switch (a.mode) {
+      case AuthMode.Basic:
+        out.add(
+          GeneratedHeader(
+            'Authorization',
+            'Basic ${base64.encode(utf8.encode('${interp(a.username)}:${interp(a.password)}'))}',
+            HeaderSource.auth,
+          ),
+        );
+      case AuthMode.Bearer:
+        out.add(
+          GeneratedHeader(
+            'Authorization',
+            'Bearer ${interp(a.token)}',
+            HeaderSource.auth,
+          ),
+        );
+      case AuthMode.ApiKey:
+        final name = interp(a.keyName).trim();
+        if (a.placement != 'queryparams' && name.isNotEmpty) {
+          out.add(GeneratedHeader(name, interp(a.keyValue), HeaderSource.auth));
+        }
+      case AuthMode.OAuth2:
+        out.add(
+          const GeneratedHeader(
+            'Authorization',
+            'Bearer <token fetched when sent>',
+            HeaderSource.auth,
+          ),
+        );
+      case AuthMode.Digest:
+        out.add(
+          const GeneratedHeader(
+            'Authorization',
+            "Digest <computed from the server's challenge>",
+            HeaderSource.auth,
+          ),
+        );
+      case AuthMode.None || AuthMode.Inherit:
+        break;
+    }
+    names.addAll(out.map((h) => h.name.toLowerCase()));
+
+    final ws = req.kind == RequestKind.ws;
+    final uri = Uri.tryParse(buildUrl(view.url));
+    final jar = uri == null || uri.host.isEmpty
+        ? null
+        : HttpExecutor.cookies.headerFor(
+            uri.replace(
+              scheme: switch (uri.scheme) {
+                'wss' => 'https',
+                'ws' => 'http',
+                final s => s,
+              },
+            ),
+          );
+    out.addAll(
+      clientHeaders(
+        uri: uri,
+        body: ws ? const BodyNone() : _buildBody(view),
+        present: names,
+        settings: settings,
+        cookie: jar,
+        websocket: ws,
+        protocols: ws ? parseProtocols(interp(req.wsProtocols)) : const [],
+      ),
+    );
+    return out;
+  }
+
   Future<PreparedRequest> prepare([ReqView? v]) async {
     final view = v ?? initialView();
     var url = buildUrl(view.url);

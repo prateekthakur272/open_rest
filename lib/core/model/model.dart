@@ -1147,6 +1147,9 @@ class AppSettings {
   final int fontSize;
   final bool autoSave;
 
+  /// Show the headers the app adds itself (auth, User-Agent ...) in the request's Headers table.
+  final bool showAutoHeaders;
+
   /// What older versions saved as the default User-Agent; read back as "unset" so it follows the real version.
   static const String legacyUserAgent = 'OpenRest/1.0';
 
@@ -1171,6 +1174,7 @@ class AppSettings {
     this.verticalLayout = true,
     this.fontSize = 13,
     this.autoSave = false,
+    this.showAutoHeaders = true,
   });
 
   AppSettings copyWith({
@@ -1186,6 +1190,7 @@ class AppSettings {
     bool? verticalLayout,
     int? fontSize,
     bool? autoSave,
+    bool? showAutoHeaders,
   }) => AppSettings(
     theme: theme ?? this.theme,
     timeoutMs: timeoutMs ?? this.timeoutMs,
@@ -1199,6 +1204,7 @@ class AppSettings {
     verticalLayout: verticalLayout ?? this.verticalLayout,
     fontSize: fontSize ?? this.fontSize,
     autoSave: autoSave ?? this.autoSave,
+    showAutoHeaders: showAutoHeaders ?? this.showAutoHeaders,
   );
 
   @override
@@ -1215,7 +1221,8 @@ class AppSettings {
       other.userAgent == userAgent &&
       other.verticalLayout == verticalLayout &&
       other.fontSize == fontSize &&
-      other.autoSave == autoSave;
+      other.autoSave == autoSave &&
+      other.showAutoHeaders == showAutoHeaders;
 
   @override
   int get hashCode => Object.hash(
@@ -1231,5 +1238,6 @@ class AppSettings {
     verticalLayout,
     fontSize,
     autoSave,
+    showAutoHeaders,
   );
 }

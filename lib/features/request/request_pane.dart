@@ -557,6 +557,22 @@ class RequestPane extends StatelessWidget {
               keyHints: (n) => HEADER_HINTS[n],
               valueSuggestions: (n) =>
                   HEADER_VALUES[n.toLowerCase()] ?? const [],
+              // What the app adds itself (auth, User-Agent ...), in the same table; the eye button hides them.
+              autoRows: [
+                for (final h in state.generatedHeadersFor(tab))
+                  TRow(h.name, h.value, h.source),
+              ],
+              autoLabel: 'Auto-generated',
+              showAutoRows: state.settings.showAutoHeaders,
+              onToggleAutoRows: () => state.updateSettings(
+                state.settings.copyWith(
+                  showAutoHeaders: !state.settings.showAutoHeaders,
+                ),
+              ),
+              onCopy: (v) {
+                Platform.copy(v);
+                state.showToast('Copied');
+              },
             ),
             _InheritedHeaders(state: state, tab: tab),
           ],

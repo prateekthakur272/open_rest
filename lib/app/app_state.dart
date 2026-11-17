@@ -7,6 +7,7 @@ import 'package:open_rest/app/modal.dart';
 import 'package:open_rest/app/sessions.dart';
 import 'package:open_rest/core/codegen/code_gen.dart';
 import 'package:open_rest/core/graphql/graphql.dart';
+import 'package:open_rest/core/http/generated_headers.dart';
 import 'package:open_rest/core/logging/log.dart';
 import 'package:open_rest/core/model/model.dart';
 import 'package:open_rest/core/run/runner.dart';
@@ -461,6 +462,25 @@ class AppState extends ChangeNotifier {
         },
       ),
     );
+  }
+
+  /// The headers sent for [tab]'s request besides the ones written on it (auth, body type, User-Agent, cookies ...).
+  /// Empty when the collection is gone or the request cannot be resolved.
+  List<GeneratedHeader> generatedHeadersFor(RequestTab tab) {
+    final col = collection(tab.collectionPath);
+    if (col == null) return const [];
+    try {
+      return Execution(
+        runCtx(col),
+        RequestNode(
+          path: tab.filePath,
+          name: tab.draft.name,
+          request: tab.draft,
+        ),
+      ).generatedHeaders(settings);
+    } catch (_) {
+      return const [];
+    }
   }
 
   void updateSettings(AppSettings s) {

@@ -214,6 +214,7 @@ class AppStore {
         verticalLayout: b('verticalLayout') ?? d.verticalLayout,
         fontSize: i('fontSize') ?? d.fontSize,
         autoSave: b('autoSave') ?? d.autoSave,
+        showAutoHeaders: b('showAutoHeaders') ?? d.showAutoHeaders,
       );
     } catch (e, st) {
       if (_exists(_settingsFile)) {
@@ -237,6 +238,7 @@ class AppStore {
       'verticalLayout': s.verticalLayout,
       'fontSize': s.fontSize,
       'autoSave': s.autoSave,
+      'showAutoHeaders': s.showAutoHeaders,
     };
     _writeFile(_settingsFile, Json.stringify(m, pretty: true));
   }
