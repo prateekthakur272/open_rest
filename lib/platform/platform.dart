@@ -45,6 +45,20 @@ class Platform {
     }
   }
 
+  /// Lets the user choose one or more files; empty when cancelled.
+  static Future<List<String>> pickFiles(String title) async {
+    try {
+      final files = await FilePicker.pickFiles(dialogTitle: title);
+      return [
+        for (final f in files)
+          if (f.path != null) f.path!,
+      ];
+    } catch (e, st) {
+      Log.warning('platform', 'File dialog failed', e, st);
+      return const [];
+    }
+  }
+
   static Future<String?> saveFile(String title, String name) async {
     try {
       final uri = await FilePicker.saveFile(

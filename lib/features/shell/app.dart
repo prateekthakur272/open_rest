@@ -5,10 +5,10 @@ import 'package:flutter/gestures.dart'
     show
         kMiddleMouseButton,
         PointerScrollEvent,
-        PointerDeviceKind,
         HorizontalDragGestureRecognizer;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:open_rest/components/drag_devices.dart';
 import 'package:open_rest/utils/app_config.dart';
 import 'package:open_rest/app/app_state.dart';
 import 'package:open_rest/components/buttons.dart';
@@ -361,6 +361,7 @@ class _Body extends StatelessWidget {
                 cursor: SystemMouseCursors.resizeLeftRight,
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
+                  supportedDevices: kDragDevices,
                   onHorizontalDragUpdate: (d) => state.sidebarWidth =
                       (state.sidebarWidth + d.delta.dx / totalPx)
                           .clamp(0.12, 0.45)
@@ -698,11 +699,7 @@ class _TabStripState extends State<_TabStrip> {
                       HorizontalDragGestureRecognizer
                     >(
                       () => HorizontalDragGestureRecognizer(
-                        supportedDevices: const {
-                          PointerDeviceKind.mouse,
-                          PointerDeviceKind.touch,
-                          PointerDeviceKind.stylus,
-                        },
+                        supportedDevices: kDragDevices,
                       ),
                       (r) {
                         r.onStart = (_) {

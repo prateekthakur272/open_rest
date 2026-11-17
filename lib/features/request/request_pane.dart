@@ -1014,10 +1014,7 @@ class _BodyPane extends StatelessWidget {
               items: r.multipart,
               onChange: (v) => upd((it) => it.copyWith(multipart: v)),
               allowFile: true,
-              onPickFile: (_, set) async {
-                final f = await Platform.pickFile('Choose file');
-                if (f != null) set(f);
-              },
+              onPickFiles: () => Platform.pickFiles('Choose files'),
               title: 'Form Data',
             ),
           ],

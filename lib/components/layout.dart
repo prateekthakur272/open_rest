@@ -2,6 +2,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:open_rest/components/buttons.dart';
+import 'package:open_rest/components/drag_devices.dart';
 import 'package:open_rest/components/modifiers.dart';
 import 'package:open_rest/components/text.dart';
 import 'package:open_rest/theme/icons.dart';
@@ -242,6 +243,7 @@ class SplitPane extends StatelessWidget {
                 cursor: SystemMouseCursors.resizeUpDown,
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
+                  supportedDevices: kDragDevices,
                   onVerticalDragUpdate: (d) => drag(d.delta.dy),
                   child: Container(
                     height: handle,
@@ -263,6 +265,7 @@ class SplitPane extends StatelessWidget {
               cursor: SystemMouseCursors.resizeLeftRight,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
+                supportedDevices: kDragDevices,
                 onHorizontalDragUpdate: (d) => drag(d.delta.dx),
                 child: Container(
                   width: handle,

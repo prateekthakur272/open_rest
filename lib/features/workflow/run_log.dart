@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:open_rest/components/drag_devices.dart';
 import 'package:open_rest/components/modifiers.dart';
 import 'package:material_ui/material_ui.dart' show CircularProgressIndicator;
 import 'package:open_rest/app/app_state.dart';
@@ -125,6 +126,7 @@ class _DockedLogState extends State<DockedLog> {
             cursor: SystemMouseCursors.resizeUpDown,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
+              supportedDevices: kDragDevices,
               onVerticalDragUpdate: (d) {
                 ws.logHeight = (ws.logHeight - d.delta.dy)
                     .clamp(120.0, 640.0)

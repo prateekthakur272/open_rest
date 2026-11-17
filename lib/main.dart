@@ -207,11 +207,12 @@ class _OpenRestRootState extends State<OpenRestRoot>
 
   void minimize() => unawaited(wm.windowManager.minimize());
 
-  void toggleMaximize() {
-    if (maximized) {
-      unawaited(wm.windowManager.unmaximize());
+  /// Maximizes (zooms on macOS) or restores the window, going by what the window really is right now.
+  Future<void> toggleMaximize() async {
+    if (await wm.windowManager.isMaximized()) {
+      await wm.windowManager.unmaximize();
     } else {
-      unawaited(wm.windowManager.maximize());
+      await wm.windowManager.maximize();
     }
   }
 
@@ -230,25 +231,17 @@ class _OpenRestRootState extends State<OpenRestRoot>
     _saveBoundsSoon();
   }
 
-  WindowChrome get chrome => isMac
-      ? const WindowChrome(leftInset: 72)
-      : WindowChrome(
-          controls: WindowControls(
-            maximized: maximized,
-            onMinimize: minimize,
-            onToggleMaximize: toggleMaximize,
-            onClose: quit,
-          ),
-          dragArea: (content) => GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onPanStart: (_) => wm.windowManager.startDragging(),
-            child: content,
-          ),
-          onDoubleClick: toggleMaximize,
-          inlineMenus: true,
-          onQuit: quit,
-          onMinimize: minimize,
-        );
+  /// The title bar's window behaviour: drag to move, double click to maximize / zoom / restore, right click for the
+  /// window menu (Windows and Linux). The same on every platform; only the window buttons and menus differ.
+  WindowChrome get chrome => WindowChrome.desktop(
+    isMac: isMac,
+    maximized: maximized,
+    onMinimize: minimize,
+    onToggleMaximize: () => unawaited(toggleMaximize()),
+    onClose: quit,
+    onDragStart: () => unawaited(wm.windowManager.startDragging()),
+    onContextMenu: () => unawaited(wm.windowManager.popUpWindowMenu()),
+  );
 
   // macOS native menu bar
 

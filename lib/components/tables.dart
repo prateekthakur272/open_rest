@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:material_ui/material_ui.dart' hide Chip;
 import 'package:open_rest/components/buttons.dart';
 import 'package:open_rest/components/context_menu.dart';
+import 'package:open_rest/components/drag_devices.dart';
 import 'package:open_rest/components/field.dart';
 import 'package:open_rest/components/modifiers.dart';
 import 'package:open_rest/components/text.dart';
@@ -10,6 +11,85 @@ import 'package:open_rest/core/model/model.dart' show KV;
 import 'package:open_rest/theme/icons.dart';
 import 'package:open_rest/theme/theme.dart';
 import 'package:open_rest/utils/url_codec.dart';
+import 'package:path/path.dart' as pathlib;
+
+/// The value of a file row: just the file name, with the full path in a tooltip. Click it to edit the path (a
+/// path can contain `{{variables}}`); an empty value is shown as an editable field straight away.
+class _FileCell extends StatefulWidget {
+  const _FileCell({required this.value, required this.onChange});
+
+  final String value;
+  final ValueChanged<String> onChange;
+
+  @override
+  State<_FileCell> createState() => _FileCellState();
+}
+
+class _FileCellState extends State<_FileCell> {
+  final FocusNode _focus = FocusNode();
+  bool _editing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(() {
+      if (!_focus.hasFocus && _editing && mounted) {
+        setState(() => _editing = false);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _edit() {
+    setState(() => _editing = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focus.requestFocus();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.pal;
+    final empty = widget.value.trim().isEmpty;
+    if (empty || _editing) {
+      return Field(
+        value: widget.value,
+        onChange: widget.onChange,
+        onEnter: () => _focus.unfocus(),
+        focusRequester: _focus,
+        placeholder: 'File path',
+        mono: true,
+        bordered: false,
+        highlightVars: false,
+      );
+    }
+    return Tooltip(
+      message: widget.value,
+      waitDuration: const Duration(milliseconds: 250),
+      child: Clickable(
+        onClick: _edit,
+        cursor: SystemMouseCursors.text,
+        child: Container(
+          height: double.infinity,
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: T(
+            pathlib.basename(widget.value),
+            mono: true,
+            color: p.text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _DecodeChip extends StatelessWidget {
   const _DecodeChip({required this.onClick});
@@ -135,6 +215,7 @@ class _ResizeHandle extends StatelessWidget {
       cursor: SystemMouseCursors.resizeLeftRight,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
+        supportedDevices: kDragDevices,
         onHorizontalDragUpdate: (d) => onDrag(d.delta.dx),
         child: SizedBox(
           width: 7,
@@ -159,7 +240,7 @@ class KVTable extends StatefulWidget {
     this.keyHint = 'Name',
     this.valueHint = 'Value',
     this.allowFile = false,
-    this.onPickFile,
+    this.onPickFiles,
     this.keySuggestions = const [],
     this.valueSuggestions,
     this.keyHints,
@@ -173,7 +254,10 @@ class KVTable extends StatefulWidget {
   final String keyHint;
   final String valueHint;
   final bool allowFile;
-  final void Function(KV, void Function(String))? onPickFile;
+
+  /// Opens a multi-select file dialog for a file row. The first file fills the row; each further file is added as
+  /// its own row below it, with the same name and content type (repeated fields are how multipart sends many files).
+  final Future<List<String>> Function()? onPickFiles;
   final List<String> keySuggestions;
   final List<String> Function(String)? valueSuggestions;
   final String? Function(String)? keyHints;
@@ -205,6 +289,21 @@ class _KVTableState extends State<KVTable> {
           .join('\n');
     }
     setState(() => bulk = !bulk);
+  }
+
+  Future<void> _pickFiles(int i) async {
+    final paths = await widget.onPickFiles?.call() ?? const <String>[];
+    // The table may have changed while the dialog was open: re-read it.
+    final current = widget.items;
+    if (paths.isEmpty || !mounted || i >= current.length) return;
+    final row = current[i];
+    widget.onChange(
+      List<KV>.of(current)
+        ..[i] = row.copyWith(value: paths.first)
+        ..insertAll(i + 1, [
+          for (final p in paths.skip(1)) row.copyWith(value: p),
+        ]),
+    );
   }
 
   void update(int i, KV Function(KV) f) {
@@ -481,6 +580,7 @@ class _KVTableState extends State<KVTable> {
                   width: _handleW,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
+                    supportedDevices: kDragDevices,
                     onVerticalDragStart: ghost
                         ? null
                         : (_) => setState(() {
@@ -583,25 +683,15 @@ class _KVTableState extends State<KVTable> {
                             Row(
                               children: [
                                 Expanded(
-                                  child: Field(
+                                  child: _FileCell(
                                     value: kv.value,
                                     onChange: (v) =>
                                         update(i, (k) => k.copyWith(value: v)),
-                                    placeholder: 'File path',
-                                    mono: true,
-                                    bordered: false,
-                                    highlightVars: false,
                                   ),
                                 ),
                                 IconBtn(
                                   icon: Ic.folder,
-                                  onClick: () => widget.onPickFile?.call(
-                                    kv,
-                                    (path) => update(
-                                      i,
-                                      (k) => k.copyWith(value: path),
-                                    ),
-                                  ),
+                                  onClick: () => _pickFiles(i),
                                 ),
                               ],
                             ),

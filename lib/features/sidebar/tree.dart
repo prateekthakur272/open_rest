@@ -1,4 +1,5 @@
 // ignore_for_file: constant_identifier_names, non_constant_identifier_names, deprecated_member_use
+import 'package:open_rest/components/drag_devices.dart';
 import 'package:open_rest/components/modifiers.dart';
 import 'package:flutter/widgets.dart';
 import 'package:material_ui/material_ui.dart' show CircularProgressIndicator;
@@ -293,6 +294,9 @@ class _TreeRowState extends State<TreeRow> {
             onExit: (_) => setState(() => hovered = false),
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
+              // A trackpad's two-finger scroll arrives as a pan; without this the row would claim it and start a
+              // drag instead of letting the list scroll. Mouse, touch and pen can still drag a row.
+              supportedDevices: kDragDevices,
               onPanStart: (_) => w.drag.onStart(),
               onPanUpdate: (d) => w.drag.onMove(d.delta.dy),
               onPanEnd: (_) => w.drag.onEnd(),

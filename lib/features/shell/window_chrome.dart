@@ -1,6 +1,7 @@
 // ignore_for_file: constant_identifier_names, non_constant_identifier_names, deprecated_member_use
-import 'package:material_ui/material_ui.dart' show Icons;
 import 'package:flutter/widgets.dart';
+import 'package:material_ui/material_ui.dart' show Icons;
+import 'package:open_rest/components/drag_devices.dart';
 import 'package:open_rest/components/modifiers.dart';
 import 'package:open_rest/theme/icons.dart';
 import 'package:open_rest/theme/theme.dart';
@@ -8,8 +9,9 @@ import 'package:window_manager/legacy.dart' as wm;
 
 /// What the app's own top bar has to do because the operating system's title bar is replaced by it.
 ///  - macOS keeps its native traffic-light buttons floating over the bar: [leftInset] leaves room for them.
-///  - Windows / Linux draw nothing, so the app supplies its own [controls] (minimize / maximize / close),
-///    a [dragArea] to move the window, and [onDoubleClick] (maximize / restore) like a normal title bar.
+///  - Windows / Linux draw nothing, so the app supplies its own [controls] (minimize / maximize / close).
+///  - On every desktop platform the bar behaves like a native title bar: a [dragArea] moves the window, and
+///    [onDoubleClick] maximizes / restores it (zoom on macOS). See [WindowChrome.desktop].
 class WindowChrome {
   const WindowChrome({
     this.leftInset = 0,
@@ -32,6 +34,39 @@ class WindowChrome {
   final VoidCallback onMinimize;
 
   static const WindowChrome none = WindowChrome();
+
+  /// The chrome of the real desktop window, with the same title-bar gestures on every platform:
+  /// drag to move ([onDragStart]), double click to maximize / zoom / restore ([onToggleMaximize]) and right click
+  /// for the window menu ([onContextMenu], where the platform has one). macOS also keeps room for its traffic lights;
+  /// Windows and Linux get their own window buttons and the menus inside the bar.
+  factory WindowChrome.desktop({
+    required bool isMac,
+    required bool maximized,
+    required VoidCallback onMinimize,
+    required VoidCallback onToggleMaximize,
+    required VoidCallback onClose,
+    required VoidCallback onDragStart,
+    VoidCallback? onContextMenu,
+  }) => WindowChrome(
+    leftInset: isMac ? 72 : 0,
+    controls: isMac
+        ? null
+        : WindowControls(
+            maximized: maximized,
+            onMinimize: onMinimize,
+            onToggleMaximize: onToggleMaximize,
+            onClose: onClose,
+          ),
+    dragArea: (content) => TitleBarDrag(
+      onDragStart: onDragStart,
+      onContextMenu: onContextMenu,
+      child: content,
+    ),
+    onDoubleClick: onToggleMaximize,
+    inlineMenus: !isMac,
+    onQuit: isMac ? _noop : onClose,
+    onMinimize: isMac ? _noop : onMinimize,
+  );
 }
 
 Widget _identity(Widget w) => w;
@@ -103,7 +138,31 @@ class WindowControls extends StatelessWidget {
   );
 }
 
-/// Double-clicking empty space in the bar maximizes / restores the window (when the platform asks for it).
+/// Dragging the bar moves the window and a right click opens the window menu, like a native title bar.
+/// Buttons and other controls inside the bar still win their own clicks.
+class TitleBarDrag extends StatelessWidget {
+  const TitleBarDrag({
+    super.key,
+    required this.onDragStart,
+    this.onContextMenu,
+    required this.child,
+  });
+
+  final VoidCallback onDragStart;
+  final VoidCallback? onContextMenu;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    behavior: HitTestBehavior.translucent,
+    supportedDevices: kDragDevices,
+    onPanStart: (_) => onDragStart(),
+    onSecondaryTap: onContextMenu,
+    child: child,
+  );
+}
+
+/// Double-clicking empty space in the bar maximizes / restores the window (zoom on macOS).
 class TitleBarDoubleClick extends StatelessWidget {
   const TitleBarDoubleClick({
     super.key,
@@ -200,6 +259,7 @@ class ResizeEdges extends StatelessWidget {
     cursor: cursor,
     child: GestureDetector(
       behavior: HitTestBehavior.opaque,
+      supportedDevices: kDragDevices,
       onPanStart: (_) => wm.windowManager.startResizing(_native(edge)),
       child: const SizedBox.expand(),
     ),
