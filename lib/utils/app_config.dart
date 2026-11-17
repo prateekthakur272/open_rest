@@ -15,6 +15,9 @@ final class AppConfig {
   static const String HOMEPAGE =
       'https://github.com/prateekthakur272/open_rest';
   static const String DEVELOPER_URL = 'https://github.com/prateekthakur272';
+
+  /// GitHub's new-issue page of the project.
+  static const String ISSUES_URL = '$HOMEPAGE/issues/new';
   static const String MORE_APPS_URL =
       'https://prateekthakur272.github.io/github-marketplace/';
   static const String TAGLINE =

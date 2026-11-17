@@ -70,6 +70,7 @@ class Ic {
   static const IconData person = Icons.account_circle_rounded;
   static const IconData shield = Icons.security_rounded;
   static const IconData tune = Icons.tune_rounded;
+  static const IconData bug = Icons.bug_report_outlined;
   static const IconData lock = Icons.lock_outline_rounded;
   static const IconData eye = Icons.visibility_rounded;
   static const IconData eyeOff = Icons.visibility_off_rounded;

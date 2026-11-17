@@ -9,7 +9,9 @@ import 'package:flutter/gestures.dart'
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:open_rest/components/drag_devices.dart';
+import 'package:material_ui/material_ui.dart' show Tooltip;
 import 'package:open_rest/utils/app_config.dart';
+import 'package:open_rest/utils/issue_report.dart';
 import 'package:open_rest/app/app_state.dart';
 import 'package:open_rest/components/buttons.dart';
 import 'package:open_rest/components/context_menu.dart';
@@ -960,6 +962,17 @@ class _StatusBar extends StatelessWidget {
                   onClick: () => state.modal = const ModalDeveloper(),
                   color: p.muted,
                   size: 15,
+                ),
+                Tooltip(
+                  message: 'Report an issue',
+                  child: IconBtn(
+                    key: const ValueKey('report-issue'),
+                    icon: Ic.bug,
+                    onClick: () =>
+                        Platform.openUrl(IssueReport.url().toString()),
+                    color: p.muted,
+                    size: 15,
+                  ),
                 ),
               ],
             ),
