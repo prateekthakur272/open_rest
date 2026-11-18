@@ -86,18 +86,6 @@ class DeveloperDialog extends StatelessWidget {
                 ),
               ],
             ),
-            if (AppConfig.DEVELOPER_URL.trim().isNotEmpty)
-              _LinkCard(
-                label: 'Profile',
-                icon: Ic.person,
-                url: AppConfig.DEVELOPER_URL,
-              ),
-            if (AppConfig.HOMEPAGE.trim().isNotEmpty)
-              _LinkCard(
-                label: 'Project repository',
-                icon: Ic.git,
-                url: AppConfig.HOMEPAGE,
-              ),
             if (AppConfig.MORE_APPS_URL.trim().isNotEmpty)
               _LinkCard(
                 label: 'Explore more apps',
