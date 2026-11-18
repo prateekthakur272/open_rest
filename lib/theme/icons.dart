@@ -98,6 +98,11 @@ class Ic {
   static const IconData image = Icons.image_rounded;
   static const IconData key = Icons.vpn_key_rounded;
   static const IconData dash = Icons.remove_rounded;
+  static const IconData git = Icons.alt_route_rounded;
+  static const IconData star = Icons.star_rounded;
+  static const IconData apps = Icons.apps_rounded;
+  static const IconData favorite = Icons.favorite_rounded;
+  static const IconData arrowOut = Icons.arrow_outward_rounded;
 
   /// The GitHub mark (not in the Material set): a sentinel [IconData] that [Ico] draws from the 24x24 outline.
   static const IconData gitHub = IconData(
