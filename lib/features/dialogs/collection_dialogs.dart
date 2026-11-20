@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:open_rest/app/app_state.dart';
 import 'package:open_rest/components/buttons.dart';
+import 'package:open_rest/core/interop/importers.dart' show Importers;
 import 'package:open_rest/components/field.dart';
 import 'package:open_rest/components/layout.dart';
 import 'package:open_rest/components/modifiers.dart';
@@ -49,18 +50,44 @@ class _NewRequestDialogState extends State<NewRequestDialog> with _AutoFocus {
   late bool graphql = widget.m.graphql;
   late bool ws = widget.m.ws;
 
-  bool get isCurl => !ws && url.trimLeft().startsWith('curl ');
+  bool get isCurl => url.trimLeft().startsWith('curl ');
+
+  /// Set once the user types a name; until then (and whenever the field is blank) the name follows the URL.
+  bool nameTouched = false;
+
+  /// Why the URL / cURL command can't be used, or null.
+  String? get urlError => Importers.checkTarget(url, ws: ws);
+
+  /// The name picked from the URL or cURL command, empty while there is none.
+  String get suggestedName {
+    if (url.trim().isEmpty || urlError != null) return '';
+    if (isCurl) return Importers.parseCurl(url)?.name ?? '';
+    return Importers.autoName(url);
+  }
+
+  /// What the name field shows and the request is created with.
+  String get effectiveName => nameTouched ? name : suggestedName;
+
+  /// A valid URL is enough to create; without one, a name is.
+  bool get canCreate =>
+      url.trim().isEmpty ? name.trim().isNotEmpty : urlError == null;
 
   void ok() {
     final state = widget.state;
+    final label = effectiveName;
     state.modal = null;
     if (isCurl) {
-      state.createRequestFromCurl(widget.m.collection, widget.m.dir, url);
+      state.createRequestFromCurl(
+        widget.m.collection,
+        widget.m.dir,
+        url,
+        name: label,
+      );
     } else {
       state.createRequest(
         widget.m.collection,
         widget.m.dir,
-        name,
+        label,
         method,
         url,
         graphql: graphql,
@@ -78,12 +105,7 @@ class _NewRequestDialogState extends State<NewRequestDialog> with _AutoFocus {
       width: 560,
       actions: [
         Btn(label: 'Cancel', onClick: () => state.modal = null),
-        Btn(
-          label: 'Create',
-          onClick: ok,
-          primary: true,
-          enabled: isCurl || name.trim().isNotEmpty,
-        ),
+        Btn(label: 'Create', onClick: ok, primary: true, enabled: canCreate),
       ],
       content: [
         const SectionLabel('REQUEST TYPE'),
@@ -149,8 +171,11 @@ class _NewRequestDialogState extends State<NewRequestDialog> with _AutoFocus {
         SizedBox(
           width: double.infinity,
           child: Field(
-            value: name,
-            onChange: (v) => setState(() => name = v),
+            value: effectiveName,
+            onChange: (v) => setState(() {
+              name = v;
+              nameTouched = v.trim().isNotEmpty;
+            }),
             placeholder: graphql
                 ? 'Countries'
                 : (ws ? 'Echo server' : 'Get users'),
@@ -158,8 +183,9 @@ class _NewRequestDialogState extends State<NewRequestDialog> with _AutoFocus {
             highlightVars: false,
           ),
         ),
-        SectionLabel(ws ? 'URL' : 'URL  (or paste a cURL command)'),
+        const SectionLabel('URL  (or paste a cURL command)'),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           spacing: 8,
           children: [
             if (graphql || ws)
@@ -178,7 +204,7 @@ class _NewRequestDialogState extends State<NewRequestDialog> with _AutoFocus {
                 weight: FontWeight.w700,
               ),
             Expanded(
-              child: Field(
+              child: AreaField(
                 value: url,
                 onChange: (v) => setState(() => url = v),
                 placeholder: ws
@@ -186,15 +212,13 @@ class _NewRequestDialogState extends State<NewRequestDialog> with _AutoFocus {
                     : (graphql
                           ? 'https://api.example.com/graphql'
                           : 'https://api.example.com/users'),
-                mono: true,
-                onEnter: () {
-                  if (isCurl || name.trim().isNotEmpty) ok();
-                },
-                highlightVars: false,
+                minHeight: 72,
+                maxLines: 6,
               ),
             ),
           ],
         ),
+        if (urlError != null) T(urlError!, color: context.pal.err, size: 11.5),
       ],
     );
   }

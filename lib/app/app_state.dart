@@ -1034,6 +1034,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> copyCurl(RequestTab tab) async {
+    if (tab.ws != null) return _copyWsCurl(tab);
     final r = await prepareFor(tab);
     r.fold(
       (pr) {
@@ -1044,6 +1045,38 @@ class AppState extends ChangeNotifier {
         errorText(e).isEmpty ? 'Could not build request' : errorText(e),
       ),
     );
+  }
+
+  /// Copies the WebSocket of [tab] as a `curl ws://…` command, with its resolved URL, headers and protocols.
+  Future<void> _copyWsCurl(RequestTab tab) async {
+    try {
+      final col = collection(tab.collectionPath);
+      if (col == null) throw StateError('Collection not found');
+      final d = tab.draft;
+      final ex = Execution(
+        runCtx(col),
+        RequestNode(
+          path: tab.filePath,
+          name: d.name,
+          request: d.copyWith(method: 'GET', bodyMode: BodyMode.None),
+        ),
+      );
+      final prepared = await ex.prepare();
+      Platform.copy(
+        CodeGen.curlWebSocket(
+          prepared,
+          protocols: parseProtocols(ex.interp(d.wsProtocols)),
+          message: ex.interp(d.wsMessage),
+        ),
+      );
+      showToast('Copied as cURL');
+    } on FormatException {
+      showToast('Invalid URL: use ws://host/path or wss://host/path');
+    } catch (e) {
+      showToast(
+        errorText(e).isEmpty ? 'Could not build request' : errorText(e),
+      );
+    }
   }
 
   void collapseAll() {

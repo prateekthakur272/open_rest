@@ -76,6 +76,42 @@ class CodeGen {
 
   static String _dollar(String s) => s.replaceAll(r'$', r'\$');
 
+  /// cURL command that opens a WebSocket (curl 7.86+ speaks `ws://` and `wss://`).
+  ///
+  /// The sub-[protocols] go in the `Sec-WebSocket-Protocol` header and the optional [message] is sent after the
+  /// handshake; `--no-buffer` prints incoming frames as they arrive.
+  static String curlWebSocket(
+    PreparedRequest r, {
+    List<String> protocols = const [],
+    String message = '',
+  }) {
+    final sb = StringBuffer('curl --no-buffer ${_sh(r.url)}');
+    final h = r.headers
+        .where((x) => x.$1.toLowerCase() != 'sec-websocket-protocol')
+        .toList();
+    if (protocols.isNotEmpty) {
+      h.add(('Sec-WebSocket-Protocol', protocols.join(', ')));
+    }
+    for (final x in h) {
+      sb.write(' \\\n  -H ${_sh('${x.$1}: ${x.$2}')}');
+    }
+    final tls = r.tls;
+    if (tls != null && tls.mode == TlsMode.custom) {
+      final pfx = tls.format == TlsFormat.pfx;
+      if (pfx && tls.pfxPath.isNotEmpty) {
+        sb.write(' \\\n  --cert ${_sh(tls.pfxPath)} --cert-type P12');
+      } else if (!pfx && tls.certPath.isNotEmpty) {
+        sb.write(' \\\n  --cert ${_sh(tls.certPath)}');
+        if (tls.keyPath.isNotEmpty) sb.write(' --key ${_sh(tls.keyPath)}');
+      }
+      if (tls.caPath.isNotEmpty) {
+        sb.write(' \\\n  --cacert ${_sh(tls.caPath)}');
+      }
+    }
+    if (message.isNotEmpty) sb.write(' \\\n  --data-raw ${_sh(message)}');
+    return sb.toString();
+  }
+
   static String generate(String lang, PreparedRequest r) {
     final h = _headersWithCt(r);
     final body = _rawBody(r);

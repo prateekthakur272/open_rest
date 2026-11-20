@@ -311,12 +311,90 @@ class Importers {
                   r.bodyMode == BodyMode.Multipart),
         )
         .toList();
+    final lowerUrl = url.toLowerCase();
+    if (lowerUrl.startsWith('ws://') || lowerUrl.startsWith('wss://')) {
+      return _curlToWebSocket(r, url, hs, joined);
+    }
     return r.copyWith(
       method: finalMethod,
       url: url,
       headers: hs,
       params: UrlSync.paramsFromUrl(url, const []),
     );
+  }
+
+  /// A `curl ws://…` command becomes a WebSocket request: the sub-protocols come from the
+  /// `Sec-WebSocket-Protocol` header, any data is the first message, and handshake headers curl or the
+  /// client generate themselves are dropped.
+  static ApiRequest _curlToWebSocket(
+    ApiRequest r,
+    String url,
+    List<KV> headers,
+    String data,
+  ) {
+    const generated = {
+      'upgrade',
+      'connection',
+      'sec-websocket-key',
+      'sec-websocket-version',
+      'sec-websocket-extensions',
+    };
+    var protocols = '';
+    final kept = <KV>[];
+    for (final h in headers) {
+      final n = h.name.toLowerCase();
+      if (n == 'sec-websocket-protocol') {
+        protocols = h.value;
+      } else if (!generated.contains(n) && n != 'content-type') {
+        kept.add(h);
+      }
+    }
+    return r.copyWith(
+      kind: RequestKind.ws,
+      method: 'GET',
+      url: url,
+      headers: kept,
+      params: UrlSync.paramsFromUrl(url, const []),
+      bodyMode: BodyMode.None,
+      wsProtocols: protocols,
+      wsMessage: data,
+    );
+  }
+
+  /// Why [input] (a URL or a cURL command) can't be used to make a request, or null when it can, or is blank.
+  ///
+  /// A URL holding a `{{variable}}` is accepted as is, as the variable may supply the scheme or host.
+  /// [ws] says a WebSocket URL is expected; a cURL command decides this itself from its URL.
+  static String? checkTarget(String input, {bool ws = false}) {
+    final t = input.trim();
+    if (t.isEmpty) return null;
+    if (t == 'curl' || t.startsWith('curl ')) {
+      final r = parseCurl(t);
+      if (r == null) return 'Not a valid cURL command: it needs a URL';
+      return _checkUrl(r.url, ws: r.kind == RequestKind.ws);
+    }
+    return _checkUrl(t, ws: ws);
+  }
+
+  static String? _checkUrl(String url, {required bool ws}) {
+    if (url.contains('{{')) return null;
+    if (RegExp(r'\s').hasMatch(url)) return 'A URL cannot contain spaces';
+    final u = Uri.tryParse(url);
+    if (u == null) return 'Not a valid URL';
+    final schemes = ws ? const ['ws', 'wss'] : const ['http', 'https'];
+    final example = ws ? 'wss://' : 'https://';
+    if (!u.hasScheme) return 'Start the URL with a scheme, e.g. $example';
+    if (!schemes.contains(u.scheme.toLowerCase())) {
+      return 'Use ${schemes.map((s) => '$s://').join(' or ')} for ${ws ? 'a WebSocket' : 'an HTTP request'}';
+    }
+    if (u.host.isEmpty) return 'The URL has no host';
+    return null;
+  }
+
+  /// A name for a request that has none: the last path segment of [url], else its host, else [fallback].
+  static String autoName(String url, {String fallback = 'New Request'}) {
+    final n = _curlName(url.trim());
+    return n == 'Imported' ? fallback : n;
   }
 
   /// Name from the last path segment of the URL, else the host, else "Imported".

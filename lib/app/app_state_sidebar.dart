@@ -37,9 +37,11 @@ extension AppStateSidebar on AppState {
     bool graphql = false,
     bool ws = false,
   }) => guard(() {
-    require(name.trim().isNotEmpty, () => 'Name required');
+    final label = name.trim().isNotEmpty
+        ? name.trim()
+        : Importers.autoName(url);
     final r = ApiRequest(
-      name: name.trim(),
+      name: label,
       method: graphql ? 'POST' : (ws ? 'GET' : method),
       kind: ws ? RequestKind.ws : RequestKind.http,
       wsMessage: ws ? '{"hello": "world"}' : '',
@@ -55,9 +57,16 @@ extension AppStateSidebar on AppState {
     if (n != null) openRequest(col, n);
   });
 
-  void createRequestFromCurl(String col, String dir, String curl) => guard(() {
-    final r = Importers.parseCurl(curl);
+  /// Creates a request from a cURL command; a non-blank [name] wins over the one picked from the URL.
+  void createRequestFromCurl(
+    String col,
+    String dir,
+    String curl, {
+    String name = '',
+  }) => guard(() {
+    var r = Importers.parseCurl(curl);
     if (r == null) throw StateError('Could not parse cURL command');
+    if (name.trim().isNotEmpty) r = r.copyWith(name: name.trim());
     final f = Collections.createRequest(dir, r);
     reload(col);
     expanded[dir] = true;

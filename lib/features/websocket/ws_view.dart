@@ -8,7 +8,7 @@ import 'package:open_rest/components/layout.dart';
 import 'package:open_rest/components/modifiers.dart';
 import 'package:open_rest/components/segmented.dart';
 import 'package:open_rest/components/text.dart';
-import 'package:open_rest/core/interop/importers.dart' show UrlSync;
+import 'package:open_rest/core/interop/importers.dart' show Importers, UrlSync;
 import 'package:open_rest/core/model/model.dart';
 import 'package:open_rest/features/request/request_pane.dart';
 import 'package:open_rest/platform/platform.dart';
@@ -142,14 +142,33 @@ class _WsUrlBar extends StatelessWidget {
               child: Field(
                 key: const ValueKey('ws-url'),
                 value: r.url,
-                onChange: (u) => state.update(
-                  tab,
-                  (it) => it.copyWith(
-                    url: u,
-                    params: UrlSync.paramsFromUrl(u, it.params),
-                  ),
-                ),
-                placeholder: 'wss://echo.websocket.events',
+                onChange: (u) {
+                  // A pasted `curl ws://…` command fills the whole request.
+                  if (u.trimLeft().startsWith('curl ')) {
+                    final parsed = Importers.parseCurl(u);
+                    if (parsed != null) {
+                      state.update(
+                        tab,
+                        (it) => parsed.copyWith(
+                          name: it.name,
+                          seq: it.seq,
+                          kind: RequestKind.ws,
+                          method: 'GET',
+                          bodyMode: BodyMode.None,
+                        ),
+                      );
+                      return;
+                    }
+                  }
+                  state.update(
+                    tab,
+                    (it) => it.copyWith(
+                      url: u,
+                      params: UrlSync.paramsFromUrl(u, it.params),
+                    ),
+                  );
+                },
+                placeholder: 'URL or paste a cURL command',
                 mono: true,
                 bordered: false,
                 onEnter: () => state.send(tab),

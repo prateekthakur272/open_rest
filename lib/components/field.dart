@@ -806,6 +806,7 @@ class AreaField extends StatefulWidget {
     this.mono = true,
     this.minHeight = 0,
     this.expands = false,
+    this.maxLines,
   });
 
   final String value;
@@ -814,6 +815,9 @@ class AreaField extends StatefulWidget {
   final bool mono;
   final double minHeight;
   final bool expands;
+
+  /// Grows with the text up to this many lines, then scrolls; null grows without limit.
+  final int? maxLines;
 
   @override
   State<AreaField> createState() => _AreaFieldState();
@@ -869,7 +873,7 @@ class _AreaFieldState extends State<AreaField> {
         cursorColor: p.accent,
         cursorRadius: Radius.zero,
         cursorOpacityAnimates: false,
-        maxLines: widget.expands ? null : null,
+        maxLines: widget.expands ? null : widget.maxLines,
         expands: widget.expands,
         textAlignVertical: TextAlignVertical.top,
         autocorrect: false,
